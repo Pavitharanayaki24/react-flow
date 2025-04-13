@@ -44,8 +44,8 @@ app.get('/port', (req, res) => {
 
 // Start server
 const startServer = async () => {
-  const port = await findAvailablePort(8080);
-  app.set('port', port);
+  const port = await findAvailablePort(8081);
+    app.set('port', port);
   app.listen(port, () => {
     console.log(`Server is running on port ${port}...`);
   });

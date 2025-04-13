@@ -469,9 +469,18 @@ const ArchPlanner = () => {
             x: 600 + Math.floor(Math.random() * 200) - 100,
             y: Math.floor(Math.random() * 600),
           };
+          // Determine node type based on the icon title
+          let nodeType = 'square';
+          if (icon.title.toLowerCase().includes('triangle')) {
+            nodeType = 'triangle';
+          } else if (icon.title.toLowerCase().includes('circle')) {
+            nodeType = 'circle';
+          } else if (icon.title.toLowerCase().includes('diamond')) {
+            nodeType = 'diamond';
+          }
           const newNode: Node = {
             id: uuidv4(),
-            type: "custom-shape",
+            type: nodeType,
             position: randomPosition,
             data: {
               iconSrc: icon.iconSrc,
@@ -480,6 +489,7 @@ const ArchPlanner = () => {
             style: { width: 125, height: 125 },
           };
           setNodes((prev: Node[]) => [...prev, newNode]);
+          takeSnapshot();
         }}
       />
       <TopBar 

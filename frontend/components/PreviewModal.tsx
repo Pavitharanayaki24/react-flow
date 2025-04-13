@@ -115,7 +115,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     if (isOpen) {
       const updatedNodes = nodes.map(node => ({
         ...node,
-        type: node.type || 'square'
+        type: node.type // Preserve original node type
       }));
       setPreviewNodes(updatedNodes);
       setPreviewEdges(edges);
