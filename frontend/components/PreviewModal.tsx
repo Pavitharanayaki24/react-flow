@@ -1,23 +1,125 @@
-import React, { useState, useEffect } from 'react';
-import ReactFlow, { Background, MiniMap } from 'reactflow';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import ReactFlow, { 
+  Background, 
+  MiniMap, 
+  Controls,
+  ReactFlowProvider,
+  useReactFlow,
+  Panel,
+  Handle
+} from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Editor } from '@monaco-editor/react';
+
+// Custom Node Components
+const SquareNode = memo(({ data }: { data: any }) => (
+  <div className="w-[125px] h-[125px] bg-white border-2 border-gray-800 rounded-md flex flex-col items-center justify-center p-2">
+    <Handle type="target" position="top" />
+    {data.iconSrc && (
+      <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
+    )}
+    <div className="text-center text-sm font-medium">{data.title}</div>
+    <Handle type="source" position="bottom" />
+  </div>
+));
+
+const TriangleNode = memo(({ data }: { data: any }) => (
+  <div className="w-[125px] h-[125px] flex flex-col items-center justify-center">
+    <Handle type="target" position="top" />
+    <div className="w-full h-full relative flex flex-col items-center justify-center">
+      <div className="absolute w-full h-full" style={{
+        clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+        backgroundColor: 'white',
+        border: '2px solid #1a1a1a'
+      }} />
+      <div className="relative z-10 flex flex-col items-center justify-center p-2 mt-4">
+        {data.iconSrc && (
+          <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
+        )}
+        <div className="text-center text-sm font-medium">{data.title}</div>
+      </div>
+    </div>
+    <Handle type="source" position="bottom" />
+  </div>
+));
+
+const CircleNode = memo(({ data }: { data: any }) => (
+  <div className="w-[125px] h-[125px] rounded-full bg-white border-2 border-gray-800 flex flex-col items-center justify-center p-2">
+    <Handle type="target" position="top" />
+    {data.iconSrc && (
+      <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
+    )}
+    <div className="text-center text-sm font-medium">{data.title}</div>
+    <Handle type="source" position="bottom" />
+  </div>
+));
+
+const DiamondNode = memo(({ data }: { data: any }) => (
+  <div className="w-[125px] h-[125px] flex flex-col items-center justify-center">
+    <Handle type="target" position="top" />
+    <div className="w-full h-full relative flex flex-col items-center justify-center">
+      <div className="absolute w-full h-full" style={{
+        clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+        backgroundColor: 'white',
+        border: '2px solid #1a1a1a'
+      }} />
+      <div className="relative z-10 flex flex-col items-center justify-center p-2">
+        {data.iconSrc && (
+          <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
+        )}
+        <div className="text-center text-sm font-medium">{data.title}</div>
+      </div>
+    </div>
+    <Handle type="source" position="bottom" />
+  </div>
+));
+
+// Node type mapping
+const nodeTypes = {
+  square: SquareNode,
+  triangle: TriangleNode,
+  circle: CircleNode,
+  diamond: DiamondNode
+};
+
+interface FlowNode {
+  id: string;
+  type: string;
+  position: { x: number; y: number };
+  data: {
+    iconSrc?: string;
+    title: string;
+    label?: string;
+  };
+  width?: number;
+  height?: number;
+}
+
+interface FlowEdge {
+  id: string;
+  source: string;
+  target: string;
+  animated?: boolean;
+  type?: string;
+}
 
 interface PreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  nodes: any[];
-  edges: any[];
-  onUpdateFlow: (nodes: any[], edges: any[]) => void;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  onUpdateFlow: (nodes: FlowNode[], edges: FlowEdge[]) => void;
 }
 
 const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edges, onUpdateFlow }) => {
   const [format, setFormat] = useState<'json' | 'js' | 'xml'>('json');
   const [editorValue, setEditorValue] = useState('');
-  const [previewNodes, setPreviewNodes] = useState(nodes);
-  const [previewEdges, setPreviewEdges] = useState(edges);
+  const [previewNodes, setPreviewNodes] = useState<FlowNode[]>(nodes);
+  const [previewEdges, setPreviewEdges] = useState<FlowEdge[]>(edges);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg' | 'html'>('png');
+  const [previewScale, setPreviewScale] = useState(1);
+  const { fitView } = useReactFlow();
 
   useEffect(() => {
     if (!isOpen) {
@@ -30,14 +132,34 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
 
   useEffect(() => {
     if (isOpen) {
+      const updatedNodes = nodes.map(node => ({
+        ...node,
+        type: node.type || 'square'
+      }));
+      setPreviewNodes(updatedNodes);
+      setPreviewEdges(edges);
       generateCode();
+      setTimeout(() => fitView({ padding: 0.2 }), 100);
     }
-  }, [format, nodes, edges, isOpen]);
+  }, [format, nodes, edges, isOpen, fitView]);
 
-  const generateCode = () => {
+  const generateCode = useCallback(() => {
     const flowData = {
-      nodes,
-      edges
+      nodes: previewNodes.map(node => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data,
+        width: node.width || 125,
+        height: node.height || 125
+      })),
+      edges: previewEdges.map(edge => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.type || 'smoothstep',
+        animated: edge.animated || true
+      }))
     };
 
     switch (format) {
@@ -48,17 +170,19 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
         setEditorValue(`const flowData = ${JSON.stringify(flowData, null, 2)};`);
         break;
       case 'xml':
-        const xmlNodes = nodes.map(node => `
+        const xmlNodes = previewNodes.map(node => `
   <node id="${node.id}" type="${node.type}">
     <position x="${node.position.x}" y="${node.position.y}" />
     <data>
-      <iconSrc>${node.data.iconSrc}</iconSrc>
+      <iconSrc>${node.data.iconSrc || ''}</iconSrc>
       <title>${node.data.title}</title>
+      <label>${node.data.label || ''}</label>
     </data>
+    <dimensions width="${node.width || 125}" height="${node.height || 125}" />
   </node>`).join('');
         
-        const xmlEdges = edges.map(edge => `
-  <edge id="${edge.id}" source="${edge.source}" target="${edge.target}" />`).join('');
+        const xmlEdges = previewEdges.map(edge => `
+  <edge id="${edge.id}" source="${edge.source}" target="${edge.target}" type="${edge.type || 'smoothstep'}" animated="${edge.animated || true}" />`).join('');
         
         setEditorValue(`<flow>
   <nodes>${xmlNodes}
@@ -68,9 +192,9 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
 </flow>`);
         break;
     }
-  };
+  }, [format, previewNodes, previewEdges]);
 
-  const handleEditorChange = (value: string | undefined) => {
+  const handleEditorChange = useCallback((value: string | undefined) => {
     if (!value) return;
 
     try {
@@ -97,13 +221,18 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
             },
             data: {
               iconSrc: node.querySelector('data iconSrc')?.textContent,
-              title: node.querySelector('data title')?.textContent
-            }
+              title: node.querySelector('data title')?.textContent,
+              label: node.querySelector('data label')?.textContent
+            },
+            width: parseFloat(node.querySelector('dimensions')?.getAttribute('width') || '125'),
+            height: parseFloat(node.querySelector('dimensions')?.getAttribute('height') || '125')
           }));
           const edges = Array.from(xmlDoc.getElementsByTagName('edge')).map(edge => ({
             id: edge.getAttribute('id'),
             source: edge.getAttribute('source'),
-            target: edge.getAttribute('target')
+            target: edge.getAttribute('target'),
+            type: edge.getAttribute('type') || 'smoothstep',
+            animated: edge.getAttribute('animated') === 'true'
           }));
           parsedData = { nodes, edges };
           break;
@@ -117,7 +246,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     } catch (error) {
       console.error('Error parsing flow data:', error);
     }
-  };
+  }, [format, onUpdateFlow]);
 
   const handleDownload = async () => {
     if (isDownloading) return;
@@ -125,7 +254,6 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     try {
       setIsDownloading(true);
       
-      // Create a simplified data structure for the server
       const previewData = {
         type: downloadFormat,
         width: 800,
@@ -239,13 +367,27 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
               <ReactFlow
                 nodes={previewNodes}
                 edges={previewEdges}
+                nodeTypes={nodeTypes}
                 fitView
                 nodesDraggable={false}
                 nodesConnectable={false}
                 elementsSelectable={false}
+                minZoom={0.1}
+                maxZoom={2}
+                defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+                defaultEdgeOptions={{
+                  type: 'smoothstep',
+                  animated: true
+                }}
               >
                 <Background variant="dots" gap={20} size={1} />
                 <MiniMap />
+                <Controls />
+                <Panel position="top-right">
+                  <div className="text-xs text-gray-500">
+                    Scale: {Math.round(previewScale * 100)}%
+                  </div>
+                </Panel>
               </ReactFlow>
             </div>
           </div>
@@ -261,7 +403,16 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
                   minimap: { enabled: false },
                   fontSize: 14,
                   wordWrap: 'on',
-                  automaticLayout: true
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  readOnly: false,
+                  theme: 'vs-light',
+                  lineNumbers: 'on',
+                  renderWhitespace: 'none',
+                  scrollbar: {
+                    vertical: 'visible',
+                    horizontal: 'visible'
+                  }
                 }}
               />
             </div>
