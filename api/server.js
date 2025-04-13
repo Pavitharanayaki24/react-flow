@@ -3,7 +3,20 @@ import cors from 'cors';
 import { toHtml, toImage } from './Flow.js';
 import { validateRFQueryParams, validateRFJsonBody } from './middleware.js';
 
-const port = 8080;
+const findAvailablePort = async (startPort) => {
+  const net = await import('net');
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', () => {
+      resolve(findAvailablePort(startPort + 1));
+    });
+    server.listen(startPort, () => {
+      const { port } = server.address();
+      server.close(() => resolve(port));
+    });
+  });
+};
 
 const app = express();
 
@@ -24,10 +37,21 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.get('/', [validateRFQueryParams], handler);
 app.post('/', [validateRFJsonBody], handler);
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}...`);
+// Route to get current port
+app.get('/port', (req, res) => {
+  res.json({ port: app.get('port') });
 });
+
+// Start server
+const startServer = async () => {
+  const port = await findAvailablePort(8080);
+  app.set('port', port);
+  app.listen(port, () => {
+    console.log(`Server is running on port ${port}...`);
+  });
+};
+
+startServer();
 
 async function handler(req, res, next) {
   try {

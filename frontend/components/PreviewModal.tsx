@@ -91,12 +91,14 @@ interface PreviewModalProps {
 }
 
 const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edges, onUpdateFlow }) => {
+
   const [format, setFormat] = useState<'json' | 'js' | 'xml'>('json');
   const [editorValue, setEditorValue] = useState('');
   const [previewNodes, setPreviewNodes] = useState<FlowNode[]>(nodes);
   const [previewEdges, setPreviewEdges] = useState<FlowEdge[]>(edges);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg' | 'html'>('png');
+  const [downloadProgress, setDownloadProgress] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const { fitView } = useReactFlow();
 
@@ -258,11 +260,35 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
         }))
       };
       
-      const json = JSON.stringify(previewData, null, 0);
-      const query = new URLSearchParams({ json }).toString();
-      const url = `http://localhost:8080?${query}`;
+      // Try to find an available server port starting from 8080
+      let serverPort = 8080;
+      let portFound = false;
       
-      const response = await fetch(url);
+      while (!portFound && serverPort < 8090) {
+        try {
+          const portResponse = await fetch(`http://localhost:${serverPort}/port`);
+          if (portResponse.ok) {
+            const { port } = await portResponse.json();
+            portFound = true;
+            serverPort = port;
+          }
+        } catch (error) {
+          serverPort++;
+        }
+      }
+      
+      if (!portFound) {
+        throw new Error('Could not find running server');
+      }
+      
+      const response = await fetch(`http://localhost:${serverPort}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(previewData)
+      });
+      
       if (!response.ok) {
         throw new Error(`Failed to fetch image: ${response.statusText}`);
       }
@@ -280,6 +306,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
       URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error('Error downloading image:', error);
+      alert('Failed to download image. Please try again.');
     } finally {
       setIsDownloading(false);
     }

@@ -99,14 +99,58 @@ export function Flow({ flowId, nodes, edges, width, height }) {
   );
 }
 
-let styles = '';
-try {
-  const reactFlowPath = require.resolve('reactflow/dist/style.css');
-  styles = await fs.readFile(reactFlowPath, 'utf-8');
-} catch (error) {
-  console.warn('Could not load ReactFlow styles:', error.message);
-  styles = '';
-}
+// Inline ReactFlow styles
+const styles = `
+  .react-flow {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  .react-flow__renderer {
+    width: 100%;
+    height: 100%;
+  }
+  .react-flow__node {
+    position: absolute;
+    user-select: none;
+    pointer-events: all;
+    transform-origin: 0 0;
+    box-sizing: border-box;
+    cursor: grab;
+  }
+  .react-flow__edge {
+    pointer-events: all;
+  }
+  .react-flow__handle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #1a192b;
+    border-radius: 100%;
+    cursor: crosshair;
+  }
+  .react-flow__handle-top {
+    top: -4px;
+    left: 50%;
+    transform: translate(-50%, 0);
+  }
+  .react-flow__handle-bottom {
+    bottom: -4px;
+    left: 50%;
+    transform: translate(-50%, 0);
+  }
+  .react-flow__background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    user-select: none;
+    z-index: -1;
+  }
+`;
 
 const absolute = {
   ['top-left']: 'top: 20px; left: 20px',
@@ -170,9 +214,7 @@ export async function toHtml(flow) {
         </style>
       </head>
       <body style="width: ${flow.width}px; height: ${flow.height}px; margin: 0; padding: 0; background-color: white;">
-        <header style="position: absolute; ${
-          absolute[flow.position]
-        }; font-family: ${flow.font.replace('"', "'")}; z-index: 10;">
+        <header style="position: absolute; top: 20px; left: 20px; font-family: ${flow.font.replace('"', "'")}; z-index: 10;">
           <h1 style="line-height: 1; margin-bottom: 16px">${flow.title}</h1>
           <div>${flow.subtitle}</div>
         </header>
@@ -184,10 +226,8 @@ export async function toHtml(flow) {
 }
 
 const browser = await puppeteer.launch({
-  executablePath: process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   ignoreHTTPSErrors: true,
-  dumpio: false,
   headless: 'new',
   protocolTimeout: 60000,
 });
