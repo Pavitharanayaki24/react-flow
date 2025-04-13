@@ -5,45 +5,73 @@ import { Background, ReactFlow, Handle } from 'reactflow';
 import puppeteer from 'puppeteer';
 
 // Custom node components using React.createElement
-const SquareNode = ({ data }) => React.createElement('div', {
-  style: {
-    width: '100%',
-    height: '100%',
-    background: '#fff',
-    border: '2px solid #1a192b',
-    borderRadius: '4px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '10px'
-  }
-}, [
-  React.createElement(Handle, { type: 'target', position: 'top' }),
-  React.createElement('div', null, data.label),
-  React.createElement(Handle, { type: 'source', position: 'bottom' })
-]);
+const CustomShapeNode = ({ data }) => {
+  const isTriangle = data.iconSrc?.includes('triangle') || data.shape === 'triangle';
+  const isCircle = data.iconSrc?.includes('circle') || data.shape === 'circle';
+  const isDiamond = data.iconSrc?.includes('diamond') || data.shape === 'diamond';
 
-const DefaultNode = ({ data }) => React.createElement('div', {
-  style: {
+  const containerStyle = {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative'
+  };
+
+  const shapeStyle = {
     width: '100%',
     height: '100%',
     background: '#fff',
     border: '2px solid #1a192b',
-    borderRadius: '50%',
     display: 'flex',
-    alignItems: 'center',
+    alignItems: isTriangle ? 'flex-end' : 'center',
     justifyContent: 'center',
-    padding: '10px'
-  }
-}, [
-  React.createElement(Handle, { type: 'target', position: 'top' }),
-  React.createElement('div', null, data.label),
-  React.createElement(Handle, { type: 'source', position: 'bottom' })
-]);
+    padding: '10px',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    ...(isTriangle && {
+      clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+      paddingBottom: '30px'
+    }),
+    ...(isCircle && {
+      borderRadius: '50%'
+    }),
+    ...(isDiamond && {
+      clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
+    })
+  };
+
+  return React.createElement('div', {
+    style: containerStyle,
+    className: 'custom-shape-node',
+    'data-shape': isTriangle ? 'triangle' : isCircle ? 'circle' : isDiamond ? 'diamond' : 'default'
+  }, [
+    React.createElement(Handle, { 
+      type: 'target', 
+      position: 'top',
+      style: { zIndex: 3 }
+    }),
+    React.createElement('div', {
+      style: shapeStyle,
+    }, React.createElement('div', {
+      style: {
+        position: 'relative',
+        zIndex: 2
+      }
+    }, data.label || data.title)),
+    React.createElement(Handle, { 
+      type: 'source', 
+      position: 'bottom',
+      style: { zIndex: 3 }
+    })
+  ]);
+};
 
 const nodeTypes = {
-  square: SquareNode,
-  default: DefaultNode,
+  'custom-shape': CustomShapeNode,
+  default: CustomShapeNode
 };
 
 export function Flow({ flowId, nodes, edges, width, height }) {
@@ -112,28 +140,32 @@ export async function toHtml(flow) {
             height: 100%;
             background-color: white;
           }
-          .react-flow__node {
-            background-color: white;
-            border: 2px solid #1a192b;
-            border-radius: 4px;
-            padding: 10px;
-            min-width: 150px;
-            min-height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: 500;
+          .custom-shape-node {
+            width: 100%;
+            height: 100%;
+            position: relative;
+          }
+          .custom-shape-node[data-shape="triangle"] > div:nth-child(2) {
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%) !important;
+          }
+          .custom-shape-node[data-shape="circle"] > div:nth-child(2) {
+            border-radius: 50% !important;
+          }
+          .custom-shape-node[data-shape="diamond"] > div:nth-child(2) {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important;
+          }
+          .react-flow__handle {
+            background-color: #1a192b;
+            width: 8px;
+            height: 8px;
+            z-index: 3;
           }
           .react-flow__edge {
-            stroke: #555;
-            stroke-width: 2;
+            z-index: 1;
           }
           .react-flow__edge-path {
             stroke: #555;
             stroke-width: 2;
-          }
-          .react-flow__handle {
-            background-color: #1a192b;
           }
         </style>
       </head>
@@ -207,16 +239,28 @@ export default Flow;
 
 function toStaticMarkup({ width, height, edges, ...flow }) {
   const nodes = flow.nodes.map((node) => {
+    const isTriangle = node.data?.iconSrc?.includes('triangle');
+    const isCircle = node.data?.iconSrc?.includes('circle');
+    const isDiamond = node.data?.iconSrc?.includes('diamond');
+    
+    let shape = 'default';
+    if (isTriangle) shape = 'triangle';
+    else if (isCircle) shape = 'circle';
+    else if (isDiamond) shape = 'diamond';
+
     return {
       ...node,
-      type: node.type || 'default',
+      type: 'custom-shape',
       data: {
         ...node.data,
-        label: node.data?.label || node.id
+        label: node.data?.label || node.data?.title || node.id,
+        shape: shape
       },
-      position: node.position || { x: 0, y: 0 },
-      width: node.width || 150,
-      height: node.height || 50,
+      style: {
+        ...node.style,
+        width: node.width || 150,
+        height: node.height || 150 // Make height equal to width for better shape proportions
+      }
     };
   });
 
@@ -230,7 +274,11 @@ function toStaticMarkup({ width, height, edges, ...flow }) {
         source: edge.source,
         target: edge.target,
         type: edge.type || 'smoothstep',
-        animated: edge.animated || true
+        animated: edge.animated || true,
+        style: {
+          stroke: edge.data?.color || '#555',
+          strokeWidth: 2
+        }
       })),
       width,
       height,
