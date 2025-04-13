@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import Sidebar from "./SideBar 1";
@@ -9,13 +9,27 @@ import { BottomControls, Footer } from "./BottomControls 1";
 import { UserInfoBar, RocketCounter } from "./UserInfoBar 1";
 import "reactflow/dist/style.css";
 import ReactFlow, {
-  addEdge, Background, BackgroundVariant, Controls,
-  MiniMap, ReactFlowProvider, Node, Edge, Connection, NodeTypes, NodeResizer, Handle, Position, useNodesState,
-  NodeChange,
+  addEdge,
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlowProvider,
   applyNodeChanges,
+  NodeResizer,
+  Handle,
+  Position,
+  useNodesState
+} from "reactflow";
+import type {
+  Node,
+  Edge,
+  Connection,
+  NodeTypes,
+  NodeChange,
   OnNodesChange
 } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
+import PreviewModal from './PreviewModal';
 
 type HistoryItem = {
   nodes: Node[];
@@ -246,6 +260,7 @@ const ArchPlanner = () => {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [title, setTitle] = useState("Untitled Mural");
   const [clickedIcon, setClickedIcon] = useState<{ iconSrc: string; title: string } | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const getNodes = () => nodes;
   const getEdges = () => edges;
@@ -294,8 +309,8 @@ const ArchPlanner = () => {
   );
 
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      setNodes((nodes) => customApplyNodeChanges(changes, nodes));
+    (changes: NodeChange[]) => {
+      setNodes((nodes: Node[]) => customApplyNodeChanges(changes, nodes));
     },
     [setNodes, customApplyNodeChanges]
   );
@@ -340,8 +355,8 @@ const ArchPlanner = () => {
 
   const onNodeDragStop = useCallback(
     (_event: React.SyntheticEvent, node: Node) => {
-      setNodes((nds) =>
-        nds.map((n) => (n.id === node.id ? { ...n, position: node.position } : n))
+      setNodes((nds: Node[]) =>
+        nds.map((n: Node) => (n.id === node.id ? { ...n, position: node.position } : n))
       );
       takeSnapshot();
       setHelperLineHorizontal(undefined);
@@ -379,7 +394,7 @@ const ArchPlanner = () => {
         },
         style: { width: 125, height: 125 },
       };
-      setNodes((nds) => [...nds, newNode]);
+      setNodes((nds: Node[]) => [...nds, newNode]);
       takeSnapshot();
     },
     [takeSnapshot]
@@ -427,17 +442,26 @@ const ArchPlanner = () => {
             },
             style: { width: 125, height: 125 },
           };
-          setNodes((prev) => [...prev, newNode]);
+          setNodes((prev: Node[]) => [...prev, newNode]);
         }}
       />
-      <TopBar title={title} setTitle={setTitle} undo={undo} redo={redo} cut={cut} copy={copy} paste={paste} />
+      <TopBar 
+        title={title} 
+        setTitle={setTitle} 
+        undo={undo} 
+        redo={redo} 
+        cut={cut} 
+        copy={copy} 
+        paste={paste}
+        onPreview={() => setIsPreviewOpen(true)}
+      />
       <UserInfoBar />
       <RocketCounter />
       <BottomControls />
       <Footer />
       <div onClick={handleCanvasClick} className="w-full h-screen overflow-auto">
         <ReactFlow
-          nodes={nodes.map((node) => ({
+          nodes={nodes.map((node: Node) => ({
             ...node,
             data: { ...node.data, selected: node.selected || false },
           }))}
@@ -449,7 +473,7 @@ const ArchPlanner = () => {
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
         >
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+          <Background variant="dots" gap={20} size={1} />
           <MiniMap style={{ position: "absolute", bottom: "60px" }} />
           <HelperLines
             horizontal={helperLineHorizontal}
@@ -457,6 +481,12 @@ const ArchPlanner = () => {
           />
         </ReactFlow>
       </div>
+      <PreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        nodes={nodes}
+        edges={edges}
+      />
     </div>
     </ReactFlowProvider>
   );
