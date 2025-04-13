@@ -70,7 +70,7 @@ const iconList = [
                   e.dataTransfer.setData(
                     "application/reactflow",
                     JSON.stringify({
-                      type: "custom-shape",
+                      type: iconObj.title.toLowerCase(),
                       iconSrc: `/shapes_icons/sharp_thin/shapes/${iconObj.src?.split('/').pop()}`,
                       title: iconObj.title,
                     })

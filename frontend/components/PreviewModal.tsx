@@ -13,63 +13,42 @@ import { Editor } from '@monaco-editor/react';
 
 // Custom Node Components
 const SquareNode = memo(({ data }: { data: any }) => (
-  <div className="w-[125px] h-[125px] bg-white border-2 border-gray-800 rounded-md flex flex-col items-center justify-center p-2">
+  <div className="w-[125px] h-[125px] bg-white border-2 border-gray-800 rounded-md">
     <Handle type="target" position="top" />
-    {data.iconSrc && (
-      <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
-    )}
-    <div className="text-center text-sm font-medium">{data.title}</div>
     <Handle type="source" position="bottom" />
   </div>
 ));
 
 const TriangleNode = memo(({ data }: { data: any }) => (
-  <div className="w-[125px] h-[125px] flex flex-col items-center justify-center">
+  <div className="w-[125px] h-[125px]">
     <Handle type="target" position="top" />
-    <div className="w-full h-full relative flex flex-col items-center justify-center">
-      <div className="absolute w-full h-full" style={{
-        clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-        backgroundColor: 'white',
-        border: '2px solid #1a1a1a'
-      }} />
-      <div className="relative z-10 flex flex-col items-center justify-center p-2 mt-4">
-        {data.iconSrc && (
-          <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
-        )}
-        <div className="text-center text-sm font-medium">{data.title}</div>
-      </div>
-    </div>
+    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <path
+        d="M50 5 L95 95 L5 95 Z"
+        fill="white"
+        stroke="#1a1a1a"
+        strokeWidth="2"
+      />
+    </svg>
     <Handle type="source" position="bottom" />
   </div>
 ));
 
 const CircleNode = memo(({ data }: { data: any }) => (
-  <div className="w-[125px] h-[125px] rounded-full bg-white border-2 border-gray-800 flex flex-col items-center justify-center p-2">
+  <div className="w-[125px] h-[125px] rounded-full bg-white border-2 border-gray-800">
     <Handle type="target" position="top" />
-    {data.iconSrc && (
-      <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
-    )}
-    <div className="text-center text-sm font-medium">{data.title}</div>
     <Handle type="source" position="bottom" />
   </div>
 ));
 
 const DiamondNode = memo(({ data }: { data: any }) => (
-  <div className="w-[125px] h-[125px] flex flex-col items-center justify-center">
+  <div className="w-[125px] h-[125px]">
     <Handle type="target" position="top" />
-    <div className="w-full h-full relative flex flex-col items-center justify-center">
-      <div className="absolute w-full h-full" style={{
-        clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
-        backgroundColor: 'white',
-        border: '2px solid #1a1a1a'
-      }} />
-      <div className="relative z-10 flex flex-col items-center justify-center p-2">
-        {data.iconSrc && (
-          <img src={data.iconSrc} alt={data.title} className="w-12 h-12 mb-2" />
-        )}
-        <div className="text-center text-sm font-medium">{data.title}</div>
-      </div>
-    </div>
+    <div className="w-full h-full" style={{
+      clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+      backgroundColor: 'white',
+      border: '2px solid #1a1a1a'
+    }} />
     <Handle type="source" position="bottom" />
   </div>
 ));

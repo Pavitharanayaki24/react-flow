@@ -163,23 +163,39 @@ const useCopyPaste = (
 const IconNode = ({
   data,
   selected,
+  type
 }: {
   data: { iconSrc: string; title: string; hideLabel?: boolean };
   selected: boolean;
+  type: string;
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [label, setLabel] = useState(data.title);
+  const isBasicShape = ['square', 'triangle', 'circle', 'diamond'].includes(type);
 
-  const handleDoubleClick = () => {
-    if (!data.hideLabel) setIsEditing(true);
-  };
+  const getNodeStyle = () => {
+    const baseStyle = {
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'white',
+      border: '2px solid #1a1a1a'
+    };
 
-  const handleBlur = () => {
-    setIsEditing(false);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLabel(e.target.value);
+    switch (type) {
+      case 'circle':
+        return {
+          ...baseStyle,
+          borderRadius: '50%'
+        };
+      case 'diamond':
+        return {
+          ...baseStyle,
+          clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)'
+        };
+      default: // square
+        return {
+          ...baseStyle,
+          borderRadius: '4px'
+        };
+    }
   };
 
   return (
@@ -211,44 +227,30 @@ const IconNode = ({
         position={Position.Right}
         className="!bg-gray-400 !w-[10px] !h-[10px] opacity-0 group-hover:opacity-100 z-10"
       />
-      <div className="w-full h-full relative flex items-center justify-center">
-        <img
-          src={data.iconSrc}
-          alt={label}
-          className="w-full h-full object-contain pointer-events-none"
-        />
-
-        {/* Conditional Label */}
-        {!data.hideLabel && (
-          <div
-            onDoubleClick={handleDoubleClick}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            {isEditing ? (
-              <input
-                value={label}
-                autoFocus
-                onChange={handleChange}
-                onBlur={handleBlur}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") e.currentTarget.blur();
-                }}
-                className="outline-none text-black text-xs bg-transparent border-none p-0 m-0 w-3/4 text-center"
-              />
-            ) : (
-              <span className="text-xs bg-transparent px-1 rounded cursor-pointer text-black">
-                {label}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+      {type === 'triangle' ? (
+        <div className="w-full h-full">
+          <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path
+              d="M50 5 L95 95 L5 95 Z"
+              fill="white"
+              stroke="#1a1a1a"
+              strokeWidth="2"
+            />
+          </svg>
+        </div>
+      ) : (
+        <div style={getNodeStyle()} />
+      )}
     </div>
   );
 };
 
 const nodeTypes: NodeTypes = {
   "custom-shape": IconNode,
+  "square": IconNode,
+  "triangle": IconNode,
+  "circle": IconNode,
+  "diamond": IconNode
 };
 
 const isAwsIcon = (iconSrc: string) => {
@@ -391,9 +393,19 @@ const ArchPlanner = () => {
         y: event.clientY - reactFlowBounds.top,
       };
       
+      // Determine node type based on the icon title
+      let nodeType = 'square';
+      if (parsed.title.toLowerCase().includes('triangle')) {
+        nodeType = 'triangle';
+      } else if (parsed.title.toLowerCase().includes('circle')) {
+        nodeType = 'circle';
+      } else if (parsed.title.toLowerCase().includes('diamond')) {
+        nodeType = 'diamond';
+      }
+      
       const newNode: Node = {
         id: uuidv4(),
-        type: parsed.type || "custom-shape",
+        type: nodeType,
         position,
         data: {
           iconSrc: parsed.iconSrc,
@@ -415,9 +427,20 @@ const ArchPlanner = () => {
       x: e.clientX - bounds.left,
       y: e.clientY - bounds.top,
     };
+    
+    // Determine node type based on the icon title
+    let nodeType = 'square';
+    if (clickedIcon.title.toLowerCase().includes('triangle')) {
+      nodeType = 'triangle';
+    } else if (clickedIcon.title.toLowerCase().includes('circle')) {
+      nodeType = 'circle';
+    } else if (clickedIcon.title.toLowerCase().includes('diamond')) {
+      nodeType = 'diamond';
+    }
+
     const newNode: Node = {
       id: uuidv4(),
-      type: "custom-shape",
+      type: nodeType,
       position,
       data: {
         iconSrc: clickedIcon.iconSrc,
