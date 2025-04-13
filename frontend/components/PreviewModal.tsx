@@ -16,6 +16,8 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
   const [editorValue, setEditorValue] = useState('');
   const [previewNodes, setPreviewNodes] = useState(nodes);
   const [previewEdges, setPreviewEdges] = useState(edges);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFormat, setDownloadFormat] = useState<'png' | 'jpg' | 'html'>('png');
 
   useEffect(() => {
     if (!isOpen) {
@@ -117,6 +119,65 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     }
   };
 
+  const handleDownload = async () => {
+    if (isDownloading) return;
+    
+    try {
+      setIsDownloading(true);
+      
+      // Create a simplified data structure for the server
+      const previewData = {
+        type: downloadFormat,
+        width: 800,
+        height: 600,
+        position: 'top-left',
+        font: 'Arial',
+        title: "Architecture Diagram",
+        subtitle: "",
+        nodes: previewNodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: node.data,
+          width: node.width || 125,
+          height: node.height || 125
+        })),
+        edges: previewEdges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type || 'smoothstep',
+          animated: edge.animated || true
+        }))
+      };
+      
+      const json = JSON.stringify(previewData, null, 0);
+      const query = new URLSearchParams({ json }).toString();
+      const url = `http://localhost:8080?${query}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `architecture-diagram.${downloadFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
@@ -148,6 +209,22 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
               <option value="js">JavaScript</option>
               <option value="xml">XML</option>
             </select>
+            <select 
+              value={downloadFormat} 
+              onChange={(e) => setDownloadFormat(e.target.value as 'png' | 'jpg' | 'html')}
+              className="border rounded px-2 py-1"
+            >
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+              <option value="html">HTML</option>
+            </select>
+            <button 
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+            >
+              {isDownloading ? 'Downloading...' : 'Download'}
+            </button>
             <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
