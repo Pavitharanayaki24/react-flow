@@ -262,6 +262,14 @@ const ArchPlanner = () => {
   const [clickedIcon, setClickedIcon] = useState<{ iconSrc: string; title: string } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+  // Reset preview state on page load and when component unmounts
+  useEffect(() => {
+    setIsPreviewOpen(false);
+    return () => {
+      setIsPreviewOpen(false);
+    };
+  }, []);
+
   const getNodes = () => nodes;
   const getEdges = () => edges;
 
@@ -423,6 +431,12 @@ const ArchPlanner = () => {
     takeSnapshot();
   };
 
+  const handleFlowUpdate = (newNodes: Node[], newEdges: Edge[]) => {
+    setNodes(newNodes);
+    setEdges(newEdges);
+    takeSnapshot();
+  };
+
   return (
     <ReactFlowProvider>
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
@@ -486,6 +500,7 @@ const ArchPlanner = () => {
         onClose={() => setIsPreviewOpen(false)}
         nodes={nodes}
         edges={edges}
+        onUpdateFlow={handleFlowUpdate}
       />
     </div>
     </ReactFlowProvider>
