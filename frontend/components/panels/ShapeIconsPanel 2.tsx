@@ -2,10 +2,12 @@
 
 import React, { useState, ChangeEvent, MouseEvent, useEffect } from "react";
 import {
-  AWS_ICON_CATEGORY_KEYS,
-  AWS_ICON_PATHS,
-  awsIcons,
-} from "./Icons 2";
+  SHAPE_ICON_CATEGORY_KEYS,
+  SHAPE_ICON_PATHS,
+  shapeIcons,
+} from "../Icons 2";
+
+const styles = Object.keys(SHAPE_ICON_PATHS) as (keyof typeof SHAPE_ICON_PATHS)[];
 
 interface TooltipState {
   show: boolean;
@@ -14,7 +16,7 @@ interface TooltipState {
   y: number;
 }
 
-function AwsIconsPanel({
+function ShapeIconsPanel({
   onClose,
   onClickPlaceIcon,
 }: {
@@ -22,24 +24,25 @@ function AwsIconsPanel({
   onClickPlaceIcon: (icon: { iconSrc: string; title: string }) => void;
 }) {
   const [search, setSearch] = useState<string>("");
+  const [selectedStyle, setSelectedStyle] = useState<keyof typeof SHAPE_ICON_PATHS>("sharp_thin");
   const [visibleCount, setVisibleCount] = useState<number>(20);
   const [tooltip, setTooltip] = useState<TooltipState>({ show: false, name: "", x: 0, y: 0 });
 
-  const awsGroups = Object.entries(awsIcons).map(([categoryKey, icons]) => {
-    const category = AWS_ICON_CATEGORY_KEYS[categoryKey as keyof typeof AWS_ICON_CATEGORY_KEYS] || categoryKey;
-    const filtered =
-      icons
-        .filter((icon) => icon.title.toLowerCase().includes(search.toLowerCase()))
-        .map((icon) => ({
-          ...icon,
+  const shapeGroups = Object.entries(shapeIcons).map(([categoryKey, stylesObj]) => {
+    const category = SHAPE_ICON_CATEGORY_KEYS[categoryKey as keyof typeof SHAPE_ICON_CATEGORY_KEYS] || categoryKey;
+    const shapes =
+      stylesObj[selectedStyle]
+        ?.filter((shape) => shape.title.toLowerCase().includes(search.toLowerCase()))
+        .map((shape) => ({
+          ...shape,
           category,
-          src: `${AWS_ICON_PATHS[categoryKey as keyof typeof AWS_ICON_PATHS] || ""}${icon.src}`,
+          src: `${SHAPE_ICON_PATHS[selectedStyle]}${categoryKey}${shape.src}`,
         })) || [];
 
-    return { category, icons: filtered };
-  }).filter((group) => group.icons.length > 0);
+    return { category, shapes };
+  }).filter((group) => group.shapes.length > 0);
 
-  const categories = awsGroups.map((g) => g.category);
+  const categories = shapeGroups.map((g) => g.category);
   const [selectedCategory, setSelectedCategory] = useState<string>(categories[0] || "");
 
   useEffect(() => {
@@ -50,6 +53,11 @@ function AwsIconsPanel({
 
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
+    setVisibleCount(20);
+  };
+
+  const handleStyleChange = (style: keyof typeof SHAPE_ICON_PATHS) => {
+    setSelectedStyle(style);
     setVisibleCount(20);
   };
 
@@ -74,7 +82,7 @@ function AwsIconsPanel({
   const loadMore = () => setVisibleCount((prev) => prev + 20);
 
   return (
-    <div className="fixed top-27 left-[100px] p-4 bg-white border border-gray-200 rounded-lg w-[350px] space-y-4 h-[70vh] overflow-y-auto z-10 shadow-lg">
+    <div className="fixed top-20 left-[100px] p-4 bg-white border border-gray-200 rounded-lg w-[350px] space-y-4 h-[80vh] overflow-y-auto z-10 shadow-lg">
       <button
         onClick={onClose}
         className="absolute top-1 right-2 text-gray-500 hover:text-red-600 text-3xl font-bold cursor-pointer"
@@ -86,7 +94,7 @@ function AwsIconsPanel({
       <div className="relative w-full mt-6">
         <input
           type="text"
-          placeholder="Search AWS icons..."
+          placeholder="Search icons..."
           value={search}
           onChange={handleSearchChange}
           className="w-full border rounded px-3 py-2 pr-10"
@@ -118,11 +126,34 @@ function AwsIconsPanel({
         </div>
       )}
 
+      {/* Style Switcher */}
+      <div className="flex gap-8 overflow-x-auto pb-2">
+        {styles.map((style) => (
+          <label
+            key={style}
+            className={`flex flex-col items-center cursor-pointer rounded-lg p-2 border ${
+              selectedStyle === style ? "border-blue-500 bg-blue-100" : "border-gray-300"
+            }`}
+            onClick={() => handleStyleChange(style)}
+          >
+            {shapeIcons.shapes?.[style]?.[95] ? (
+              <img
+                src={`${SHAPE_ICON_PATHS[style]}shapes${shapeIcons.shapes[style][95].src}`}
+                alt="Style"
+                className="w-8 h-8 mb-1"
+              />
+            ) : (
+              <span className="text-xs">{style.replace("sharp_", "").toUpperCase()}</span>
+            )}
+          </label>
+        ))}
+      </div>
+
       {/* Icon Grid */}
       {search ? (
         <div className="space-y-6 max-h-[340px] overflow-y-auto">
           {(() => {
-            const allIcons = awsGroups.flatMap((group) => group.icons);
+            const allIcons = shapeGroups.flatMap((group) => group.shapes);
             const limitedIcons = allIcons.slice(0, visibleCount);
             const grouped = limitedIcons.reduce<Record<string, typeof limitedIcons>>((acc, icon) => {
               const cat = icon.category as string;
@@ -135,43 +166,6 @@ function AwsIconsPanel({
                 <div className="font-semibold mb-2">{category}</div>
                 <div className="grid grid-cols-4 gap-3 mb-2">
                   {icons.map((icon, i) => (
-                    <img
-                    key={i}
-                    src={icon.src}
-                    alt={icon.title}
-                    className="w-10 h-10 cursor-pointer"
-                    draggable
-                    onClick={() => onClickPlaceIcon({ iconSrc: icon.src, title: icon.title })}
-                    onDragStart={(e) =>
-                      e.dataTransfer.setData(
-                        "application/reactflow",
-                        JSON.stringify({
-                          type: "custom-shape",
-                          iconSrc: icon.src,
-                          title: icon.title,
-                        })
-                      )
-                    }                      
-                    onMouseEnter={(e) => handleMouseEnter(e, icon.title)}
-                    onMouseLeave={handleMouseLeave}
-                  />
-                  ))}
-                </div>
-                <hr className="my-2 border-gray-300" />
-              </div>
-            ));
-          })()}
-        </div>
-      ) : (
-        <>
-          {awsGroups.find((g) => g.category === selectedCategory)?.icons && (
-            <div>
-              <div className="font-semibold mt-4 mb-2">{selectedCategory}</div>
-              <div className="grid grid-cols-4 gap-3 max-h-[250px] overflow-y-auto">
-                {awsGroups
-                  .find((g) => g.category === selectedCategory)!
-                  .icons.slice(0, visibleCount)
-                  .map((icon, i) => (
                     <img
                       key={i}
                       src={icon.src}
@@ -193,6 +187,43 @@ function AwsIconsPanel({
                       onMouseLeave={handleMouseLeave}
                     />
                   ))}
+                </div>
+                <hr className="my-2 border-gray-300" />
+              </div>
+            ));
+          })()}
+        </div>
+      ) : (
+        <>
+          {shapeGroups.find((g) => g.category === selectedCategory)?.shapes && (
+            <div>
+              <div className="font-semibold mb-2">{selectedCategory}</div>
+              <div className="grid grid-cols-4 gap-3 max-h-[250px] overflow-y-auto">
+                {shapeGroups
+                  .find((g) => g.category === selectedCategory)!
+                  .shapes.slice(0, visibleCount)
+                  .map((shape, i) => (
+                    <img
+                      key={i}
+                      src={shape.src}
+                      alt={shape.title}
+                      className="w-10 h-10 cursor-pointer"
+                      draggable
+                      onClick={() => onClickPlaceIcon({ iconSrc: shape.src, title: shape.title })}
+                      onDragStart={(e) =>
+                        e.dataTransfer.setData(
+                          "application/reactflow",
+                          JSON.stringify({
+                            type: "custom-shape",
+                            iconSrc: shape.src,
+                            title: shape.title,
+                          })
+                        )
+                      }                      
+                      onMouseEnter={(e) => handleMouseEnter(e, shape.title)}
+                      onMouseLeave={handleMouseLeave}
+                    />
+                  ))}
               </div>
             </div>
           )}
@@ -210,8 +241,8 @@ function AwsIconsPanel({
 
       {/* Load More */}
       {(search
-        ? awsGroups.flatMap((group) => group.icons).length > visibleCount
-        : awsGroups.find((g) => g.category === selectedCategory)?.icons?.length! > visibleCount) && (
+        ? shapeGroups.flatMap((group) => group.shapes).length > visibleCount
+        : shapeGroups.find((g) => g.category === selectedCategory)?.shapes?.length! > visibleCount) && (
         <div className="flex justify-center mt-4">
           <button
             onClick={loadMore}
@@ -225,4 +256,4 @@ function AwsIconsPanel({
   );
 }
 
-export default AwsIconsPanel;
+export default ShapeIconsPanel;

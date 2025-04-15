@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { FaAws, FaShapes } from "react-icons/fa";
 import { MdImage, MdEdit, MdSave, MdTextFields } from "react-icons/md";
-import ShapeIconsPanel from "./ShapeIconsPanel 2";
-import AwsIconsPanel from "./AwsIconsPanel 2";
+import ShapeIconsPanel from "../panels/ShapeIconsPanel 2";
+import AwsIconsPanel from "../panels/AwsIconsPanel 2";
 
 const iconList = [
     { id: 1, title: "Square", src: "/sidebar/square.svg" },

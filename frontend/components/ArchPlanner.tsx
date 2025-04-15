@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import Sidebar from "./SideBar 1";
-import TopBar from "./TopBar 1";
+import Sidebar from "./layout/SideBar 1";
+import TopBar from "./layout/TopBar 1";
 import HelperLines from "./HelperLines 1";
 import { getHelperLines } from "./utils1"
-import { BottomControls, Footer } from "./BottomControls 1";
-import { UserInfoBar, RocketCounter } from "./UserInfoBar 1";
+import { BottomControls, Footer } from "./panels/BottomControls 1";
+import { UserInfoBar, RocketCounter } from "./layout/UserInfoBar 1";
 import "reactflow/dist/style.css";
 import ReactFlow, {
   addEdge,
@@ -18,8 +18,19 @@ import ReactFlow, {
   NodeResizer,
   Handle,
   Position,
-  useNodesState
+  useNodesState,
+  ConnectionMode,
+  OnConnect,
+  Panel,
+  useEdgesState
 } from "reactflow";
+import {useStore} from './store'
+import {  EditableEdge } from './edges/EditableEdge';
+import{ControlPointData} from './edges/ControlPoint';
+import { ConnectionLine } from './edges/ConnectionLine';
+import { Toolbar } from './Toolbar';
+import { DEFAULT_ALGORITHM } from './edges/constants';
+//end ofee
 import type {
   Node,
   Edge,
@@ -253,6 +264,12 @@ const nodeTypes: NodeTypes = {
   "diamond": IconNode
 };
 
+// Define edgeTypes outside the component to prevent recreation on each render
+const edgeTypes = {
+  'editable-edge': EditableEdge,
+  type: 'smoothstep',
+};
+
 const isAwsIcon = (iconSrc: string) => {
   return iconSrc.toLowerCase().includes('aws');
 };
@@ -358,7 +375,25 @@ const ArchPlanner = () => {
   const onConnect = useCallback(
     (params: Edge | Connection) => {
       takeSnapshot();
-      setEdges((eds) => addEdge(params, eds));
+      const { connectionLinePath } = useStore.getState();
+      const edge = {
+        ...params,
+        id: `${Date.now()}-${params.source}-${params.target}`,
+        type: 'editable-edge',
+        selected: false,
+        data: {
+          algorithm: DEFAULT_ALGORITHM,
+          points: connectionLinePath ? connectionLinePath.map(
+            (point: any, i: number) => ({
+              ...point,
+              id: window.crypto.randomUUID(),
+              prev: i === 0 ? undefined : i - 1,
+              active: true
+            })
+          ) : []
+        }
+      };
+      setEdges((eds) => addEdge(edge, eds));
     },
     [takeSnapshot]
   );
@@ -460,6 +495,30 @@ const ArchPlanner = () => {
     takeSnapshot();
   };
 
+  // Add a handler for edge changes
+  const handleEdgesChange = useCallback(
+    (changes: any[]) => {
+      setEdges((eds) => {
+        return eds.map(edge => {
+          const change = changes.find(c => c.id === edge.id);
+          if (change && change.type === 'select') {
+            return { ...edge, selected: change.selected };
+          }
+          // Preserve algorithm if already set
+          const algorithm = edge.data?.algorithm || DEFAULT_ALGORITHM;
+          return {
+            ...edge,
+            data: {
+              ...edge.data,
+              algorithm
+            }
+          };
+        });
+      });
+    },
+    []
+  );
+
   return (
     <ReactFlowProvider>
     <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
@@ -515,10 +574,14 @@ const ArchPlanner = () => {
           edges={edges}
           onConnect={onConnect}
           onNodesChange={onNodesChange}
+          onEdgesChange={handleEdgesChange}
           onNodeDragStop={onNodeDragStop}
           onDrop={onDrop}
           onDragOver={onDragOver}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          connectionLineComponent={ConnectionLine}
         >
           <Background variant="dots" gap={20} size={1} />
           <MiniMap style={{ position: "absolute", bottom: "60px" }} />
@@ -526,6 +589,7 @@ const ArchPlanner = () => {
             horizontal={helperLineHorizontal}
             vertical={helperLineVertical}
           />
+          {edges.some(edge => edge.selected) && <Toolbar />}
         </ReactFlow>
       </div>
       <PreviewModal

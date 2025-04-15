@@ -6,7 +6,8 @@ import ReactFlow, {
   ReactFlowProvider,
   useReactFlow,
   Panel,
-  Handle
+  Handle,
+  useStore
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Editor } from '@monaco-editor/react';
@@ -69,17 +70,26 @@ interface FlowNode {
     iconSrc?: string;
     title: string;
     label?: string;
+    shape?: string;
   };
   width?: number;
   height?: number;
+  style?: Record<string, any>;
 }
 
 interface FlowEdge {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
   animated?: boolean;
   type?: string;
+  data?: {
+    color?: string;
+    [key: string]: any;
+  };
+  style?: Record<string, any>;
 }
 
 interface PreviewModalProps {
@@ -235,52 +245,455 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     try {
       setIsDownloading(true);
       
-      const previewData = {
-        type: downloadFormat,
-        width: 800,
-        height: 600,
-        position: 'top-left',
-        font: 'Arial',
-        title: "Architecture Diagram",
-        subtitle: "",
-        nodes: previewNodes.map(node => ({
-          id: node.id,
-          type: node.type,
-          position: node.position,
-          data: node.data,
-          width: node.width || 125,
-          height: node.height || 125
-        })),
-        edges: previewEdges.map(edge => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type || 'smoothstep',
-          animated: edge.animated || true
-        }))
+      // Create a notification to show status
+      const notification = document.createElement('div');
+      notification.style.position = 'fixed';
+      notification.style.bottom = '20px';
+      notification.style.left = '50%';
+      notification.style.transform = 'translateX(-50%)';
+      notification.style.backgroundColor = 'rgba(59, 130, 246, 0.9)';
+      notification.style.color = 'white';
+      notification.style.padding = '12px 24px';
+      notification.style.borderRadius = '8px';
+      notification.style.zIndex = '9999';
+      notification.style.fontFamily = 'Arial, sans-serif';
+      notification.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      notification.style.opacity = '0.8';
+      notification.textContent = 'Processing...';
+      document.body.appendChild(notification);
+      
+      const updateStatus = (message: string) => {
+        // Only update status for important messages
+        if (message.includes('error') || message.includes('failed') || message.includes('complete')) {
+          notification.textContent = message;
+        }
       };
       
-      // Try to find an available server port starting from 8080
+      // Try the simple HTML export first for reliability if selected
+      if (downloadFormat === 'html') {
+        // Silent processing instead of showing status
+        // updateStatus('Generating HTML diagram...');
+        
+        // Create a simplified HTML version of the diagram
+        const nodesHtml = previewNodes.map(node => {
+          const x = node.position.x;
+          const y = node.position.y;
+          const width = node.width || 150;
+          const height = node.height || 150;
+          const label = node.data.label || node.data.title || node.id;
+          
+          // Determine shape CSS
+          let shapeCss = '';
+          if (node.type === 'circle') {
+            shapeCss = 'border-radius: 50%;';
+          } else if (node.type === 'triangle') {
+            shapeCss = 'clip-path: polygon(50% 0%, 0% 100%, 100% 100%);';
+          } else if (node.type === 'diamond') {
+            shapeCss = 'clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);';
+          }
+          
+          return `
+            <div class="node" data-id="${node.id}" style="
+              position: absolute;
+              left: ${x}px;
+              top: ${y}px;
+              width: ${width}px;
+              height: ${height}px;
+              z-index: 1;
+            ">
+              <div class="node-content" style="
+                width: 100%;
+                height: 100%;
+                background-color: white;
+                border: 2px solid #1a192b;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                ${shapeCss}
+              ">
+                <div class="node-label" style="
+                  padding: 10px;
+                  text-align: center;
+                  font-weight: bold;
+                  word-break: break-word;
+                ">${label}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        // Simple edge rendering
+        const edgesHtml = previewEdges.map(edge => {
+          const sourceNode = previewNodes.find(n => n.id === edge.source);
+          const targetNode = previewNodes.find(n => n.id === edge.target);
+          
+          if (sourceNode && targetNode) {
+            const sourceX = sourceNode.position.x + (sourceNode.width || 150) / 2;
+            const sourceY = sourceNode.position.y + (sourceNode.height || 150);
+            const targetX = targetNode.position.x + (targetNode.width || 150) / 2;
+            const targetY = targetNode.position.y;
+            
+            return `
+              <svg class="edge" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;">
+                <line 
+                  x1="${sourceX}" 
+                  y1="${sourceY}" 
+                  x2="${targetX}" 
+                  y2="${targetY}" 
+                  stroke="#555" 
+                  stroke-width="2"
+                />
+              </svg>
+            `;
+          }
+          
+          return '';
+        }).join('');
+        
+        const html = `
+          <!DOCTYPE html>
+          <html lang="en">
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Architecture Diagram</title>
+              <style>
+                * {
+                  box-sizing: border-box;
+                  margin: 0;
+                  padding: 0;
+                }
+                
+                body, html {
+                  width: 1200px;
+                  height: 800px;
+                  font-family: Arial, sans-serif;
+                  overflow: hidden;
+                  background-color: white;
+                }
+                
+                .diagram-container {
+                  position: relative;
+                  width: 100%;
+                  height: 100%;
+                }
+                
+                .header {
+                  position: absolute;
+                  top: 20px;
+                  left: 20px;
+                  z-index: 10;
+                  background-color: rgba(255, 255, 255, 0.8);
+                  padding: 10px;
+                  border-radius: 4px;
+                }
+                
+                h1 {
+                  font-size: 24px;
+                  margin-bottom: 8px;
+                  color: #333;
+                }
+                
+                p {
+                  font-size: 14px;
+                  color: #666;
+                  margin-bottom: 5px;
+                }
+                
+                .node {
+                  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                }
+                
+                /* Background dots */
+                .diagram-background {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  background-image: radial-gradient(#ddd 1px, transparent 1px);
+                  background-size: 20px 20px;
+                  background-position: 0 0;
+                  z-index: -1;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="diagram-container">
+                <div class="diagram-background"></div>
+                
+                <!-- Edges -->
+                ${edgesHtml}
+                
+                <!-- Nodes -->
+                ${nodesHtml}
+                
+                <header class="header">
+                  <h1>Architecture Diagram</h1>
+                  <p>Nodes: ${previewNodes.length}, Edges: ${previewEdges.length}</p>
+                </header>
+              </div>
+            </body>
+          </html>
+        `;
+        
+        // Download the HTML file directly without server
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'architecture-diagram.html';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        updateStatus('HTML diagram downloaded!');
+        setTimeout(() => {
+          document.body.removeChild(notification);
+        }, 3000);
+        setIsDownloading(false);
+        return;
+      }
+      
+      // For PNG/JPG, use the server-side rendering approach
+      // Fix any scaling issues by normalizing node positions
+      const normalizedNodes = previewNodes.map(node => ({
+        ...node,
+        type: node.type || 'default',
+        position: {
+          x: Math.round(node.position.x),
+          y: Math.round(node.position.y),
+        },
+        data: {
+          ...node.data,
+          label: node.data.label || node.data.title || node.id, // Ensure label is present
+          iconSrc: node.data.iconSrc || '',
+          shape: node.type === 'circle' ? 'circle' : 
+                 node.type === 'triangle' ? 'triangle' : 
+                 node.type === 'diamond' ? 'diamond' : 'default'
+        },
+        width: node.width || 150, // Match server-side expected size
+        height: node.height || 150,
+        style: {
+          border: '2px solid #1a192b',
+          background: '#ffffff',
+          ...node.style
+        }
+      }));
+      
+      const normalizedEdges = previewEdges.map(edge => ({
+        ...edge,
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: '',  // Provide empty string instead of null
+        targetHandle: '',  // Provide empty string instead of null
+        type: 'smoothstep', // Always use smoothstep
+        animated: false, // Disable animation for export
+        data: {
+          ...edge.data,
+          color: '#555'
+        },
+        style: {
+          stroke: '#555',
+          strokeWidth: 2
+        }
+      }));
+      
+      // Create the data object to send to the server
+      const previewData = {
+        type: downloadFormat,
+        width: 1200, // Use larger size for better quality
+        height: 800,
+        position: 'top-left',
+        font: 'Arial, sans-serif',
+        title: "Architecture Diagram",
+        subtitle: `Nodes: ${normalizedNodes.length}, Edges: ${normalizedEdges.length}`,
+        nodes: normalizedNodes,
+        edges: normalizedEdges,
+        debug: true // Enable debug mode
+      };
+      
+      updateStatus('Connecting to server...');
+      
+      // Try to find the server on port 8080 first
       let serverPort = 8080;
       let portFound = false;
       
-      while (!portFound && serverPort < 8090) {
-        try {
-          const portResponse = await fetch(`http://localhost:${serverPort}/port`);
-          if (portResponse.ok) {
-            const { port } = await portResponse.json();
-            portFound = true;
-            serverPort = port;
+      try {
+        const portResponse = await fetch(`http://localhost:${serverPort}/health`, { 
+          method: 'GET'
+        });
+        if (portResponse.ok) {
+          portFound = true;
+          console.log(`Found server on port ${serverPort}`);
+        }
+      } catch (error) {
+        console.log(`Server not found on port ${serverPort}, trying alternatives...`);
+      }
+      
+      // If not found, try ports 8081-8090
+      if (!portFound) {
+        for (let port = 8081; port <= 8090; port++) {
+          try {
+            updateStatus(`Trying server on port ${port}...`);
+            const portResponse = await fetch(`http://localhost:${port}/health`);
+            if (portResponse.ok) {
+              serverPort = port;
+              portFound = true;
+              console.log(`Found server on port ${port}`);
+              break;
+            }
+          } catch (error) {
+            // Continue to next port
           }
-        } catch (error) {
-          serverPort++;
         }
       }
       
       if (!portFound) {
-        throw new Error('Could not find running server');
+        updateStatus('Server not found. Using client-side export...');
+        
+        try {
+          // Fall back to HTML export and convert to data URL
+          // This isn't ideal but allows a download even if server isn't running
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = 1200;
+          tempCanvas.height = 800;
+          const ctx = tempCanvas.getContext('2d');
+          
+          if (!ctx) {
+            throw new Error('Failed to create canvas context');
+          }
+          
+          // Don't show status while generating to avoid UI flashing
+          // updateStatus('Generating image...');
+          
+          // Fill canvas with white background
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, 1200, 800);
+          
+          // Draw title
+          ctx.font = 'bold 24px Arial';
+          ctx.fillStyle = 'black';
+          ctx.fillText('Architecture Diagram', 20, 40);
+          
+          // Draw subtitle
+          ctx.font = '14px Arial';
+          ctx.fillStyle = 'gray';
+          ctx.fillText(`Nodes: ${normalizedNodes.length}, Edges: ${normalizedEdges.length}`, 20, 60);
+          
+          // Draw nodes
+          normalizedNodes.forEach(node => {
+            const x = node.position.x;
+            const y = node.position.y;
+            const width = node.width || 150;
+            const height = node.height || 150;
+            
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = '#1a192b';
+            ctx.lineWidth = 2;
+            
+            if (node.type === 'circle') {
+              // Draw circle
+              const centerX = x + width / 2;
+              const centerY = y + height / 2;
+              const radius = width / 2;
+              
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+              ctx.fill();
+              ctx.stroke();
+            } else if (node.type === 'triangle') {
+              // Draw triangle
+              ctx.beginPath();
+              ctx.moveTo(x + width / 2, y);
+              ctx.lineTo(x, y + height);
+              ctx.lineTo(x + width, y + height);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+            } else if (node.type === 'diamond') {
+              // Draw diamond
+              ctx.beginPath();
+              ctx.moveTo(x + width / 2, y);
+              ctx.lineTo(x + width, y + height / 2);
+              ctx.lineTo(x + width / 2, y + height);
+              ctx.lineTo(x, y + height / 2);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+            } else {
+              // Default square/rectangle
+              ctx.fillRect(x, y, width, height);
+              ctx.strokeRect(x, y, width, height);
+            }
+            
+            // Draw node label
+            ctx.fillStyle = 'black';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            
+            const label = node.data.label || node.data.title || node.id;
+            const labelX = x + width / 2;
+            const labelY = y + height / 2;
+            
+            ctx.fillText(label, labelX, labelY);
+          });
+          
+          // Draw edges as simple lines
+          ctx.strokeStyle = '#555';
+          ctx.lineWidth = 2;
+          
+          normalizedEdges.forEach(edge => {
+            const sourceNode = normalizedNodes.find(n => n.id === edge.source);
+            const targetNode = normalizedNodes.find(n => n.id === edge.target);
+            
+            if (sourceNode && targetNode) {
+              const sourceX = sourceNode.position.x + (sourceNode.width || 150) / 2;
+              const sourceY = sourceNode.position.y + (sourceNode.height || 150);
+              const targetX = targetNode.position.x + (targetNode.width || 150) / 2;
+              const targetY = targetNode.position.y;
+              
+              ctx.beginPath();
+              ctx.moveTo(sourceX, sourceY);
+              ctx.lineTo(targetX, targetY);
+              ctx.stroke();
+            }
+          });
+          
+          // Get data URL and convert to blob
+          const dataUrl = tempCanvas.toDataURL(downloadFormat === 'jpg' ? 'image/jpeg' : 'image/png');
+          
+          // Create download link
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = `architecture-diagram.${downloadFormat}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          updateStatus('Image downloaded!');
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 3000);
+          setIsDownloading(false);
+          return;
+        } catch (clientError) {
+          console.error('Client-side export failed:', clientError);
+          updateStatus('Client-side export failed. Please run the server.');
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 3000);
+          setIsDownloading(false);
+          return;
+        }
       }
       
+      // Proceed silently instead of showing the generating message
+      // updateStatus('Generating image...');
+      
+      // Send the data to the server
       const response = await fetch(`http://localhost:${serverPort}`, {
         method: 'POST',
         headers: {
@@ -290,12 +703,22 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} ${response.statusText}\n${errorText}`);
       }
       
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
+      // Skip status update for generated images
+      // updateStatus('Image generated! Downloading...');
       
+      // Get the image data
+      const blob = await response.blob();
+      
+      if (blob.size < 100) {
+        throw new Error('Generated image is too small, likely empty');
+      }
+      
+      // Create a download link
+      const downloadUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = `architecture-diagram.${downloadFormat}`;
@@ -304,9 +727,15 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
       document.body.removeChild(link);
       
       URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
+      updateStatus('Download complete!');
+      
+      // Remove the notification after a delay
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 3000);
+    } catch (error: any) {
       console.error('Error downloading image:', error);
-      alert('Failed to download image. Please try again.');
+      alert(`Failed to download image: ${error.message || 'Unknown error'}`);
     } finally {
       setIsDownloading(false);
     }
@@ -357,7 +786,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
               disabled={isDownloading}
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
             >
-              {isDownloading ? 'Downloading...' : 'Download'}
+              Download
             </button>
             <button onClick={handleClose} className="text-gray-500 hover:text-gray-700">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

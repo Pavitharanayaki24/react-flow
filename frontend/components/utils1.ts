@@ -1,5 +1,6 @@
 import type { Flow, Font, TextPosition } from './types';
 import { NodePositionChange, XYPosition, Node } from 'reactflow';
+import type { ControlPointData } from './edges/ControlPoint';
 
 // =================== CONSTANTS ===================
 export const fonts = [
@@ -25,10 +26,10 @@ export const textPositions = [
 const parser = typeof window !== 'undefined' ? new DOMParser() : null;
 
 export const fromXml = (source: string, prev: Flow) => {
-    if (!parser) return prev; // If on server, skip parsing
-    const xml = parser.parseFromString(source, 'text/xml');
-  
-    if (xml.querySelector('parsererror')) return prev;
+  if (!parser) return prev;
+  const xml = parser.parseFromString(source, 'text/xml');
+  if (xml.querySelector('parsererror')) return prev;
+
   const rf = xml.querySelector('react-flow');
   const width = Number(rf?.getAttribute('width')) ?? prev.width;
   const height = Number(rf?.getAttribute('height')) ?? prev.height;
@@ -44,7 +45,15 @@ export const fromXml = (source: string, prev: Flow) => {
     const y = Number(node.getAttribute('y'));
     const nodeWidth = Number(node.getAttribute('width'));
     const nodeHeight = Number(node.getAttribute('height'));
-    return [{ id, width: nodeWidth || 100, height: nodeHeight || 40, position: { x: Number.isNaN(x) ? 0 : x, y: Number.isNaN(y) ? 0 : y } }];
+    return [{
+      id,
+      width: nodeWidth || 100,
+      height: nodeHeight || 40,
+      position: {
+        x: Number.isNaN(x) ? 0 : x,
+        y: Number.isNaN(y) ? 0 : y,
+      },
+    }];
   });
 
   const edges = Array.from(xml.querySelectorAll('edges > edge')).flatMap((edge) => {
@@ -73,12 +82,31 @@ export const asXml = (flow: Flow) => `<react-flow
   </edges>
 </react-flow>`;
 
-const asXmlNode = (node: Flow['nodes'][number]) => `<node id="${node.id}" width="${node.width}" height="${node.height}" x="${node.position.x}" y="${node.position.y}" />`;
-const asXmlEdge = (edge: Flow['edges'][number]) => `<edge id="${edge.id}" source="${edge.source}" target="${edge.target}" />`;
+const asXmlNode = (node: Flow['nodes'][number]) =>
+  `<node id="${node.id}" width="${node.width}" height="${node.height}" x="${node.position.x}" y="${node.position.y}" />`;
+
+const asXmlEdge = (edge: Flow['edges'][number]) =>
+  `<edge id="${edge.id}" source="${edge.source}" target="${edge.target}" />`;
 
 export const asJson = (flow: Flow) => JSON.stringify(flow, null, 2);
-export const fromJson = (source: string) => { try { return JSON.parse(source) as Flow; } catch { return null; } };
-export const fromJavascript = (source: string) => { try { const flow = eval(source + '(() => flow)()') ?? ''; return flow; } catch { return null; } };
+
+export const fromJson = (source: string) => {
+  try {
+    return JSON.parse(source) as Flow;
+  } catch {
+    return null;
+  }
+};
+
+export const fromJavascript = (source: string) => {
+  try {
+    const flow = eval(source + '(() => flow)()') ?? '';
+    return flow;
+  } catch {
+    return null;
+  }
+};
+
 export const asJavaScript = (flow: Flow) => `const flow = {
   width: ${flow.width},
   height: ${flow.height},
@@ -94,8 +122,11 @@ export const asJavaScript = (flow: Flow) => `const flow = {
   ],
 };`;
 
-const asNode = (node: Flow['nodes'][number]) => `{ id: '${node.id}', width: ${node.width}, height: ${node.height}, position: { x: ${node.position.x}, y: ${node.position.y} } }`;
-const asEdge = (edge: Flow['edges'][number]) => `{ id: '${edge.id}', source: '${edge.source}', target: '${edge.target}' }`;
+const asNode = (node: Flow['nodes'][number]) =>
+  `{ id: '${node.id}', width: ${node.width}, height: ${node.height}, position: { x: ${node.position.x}, y: ${node.position.y} } }`;
+
+const asEdge = (edge: Flow['edges'][number]) =>
+  `{ id: '${edge.id}', source: '${edge.source}', target: '${edge.target}' }`;
 
 // =================== HELPER LINES ===================
 type GetHelperLinesResult = {
@@ -182,3 +213,8 @@ export function getHelperLines(change: NodePositionChange, nodes: MeasuredNode[]
     return result;
   }, defaultResult);
 }
+
+// =================== CONTROL POINT UTILS ===================
+export const isControlPoint = (
+  point: ControlPointData | XYPosition
+): point is ControlPointData => 'id' in point;

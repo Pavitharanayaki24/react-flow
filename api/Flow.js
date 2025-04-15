@@ -9,6 +9,7 @@ const CustomShapeNode = ({ data }) => {
   const isTriangle = data.iconSrc?.includes('triangle') || data.shape === 'triangle';
   const isCircle = data.iconSrc?.includes('circle') || data.shape === 'circle';
   const isDiamond = data.iconSrc?.includes('diamond') || data.shape === 'diamond';
+  const hideLabel = data.hideLabel === true;
 
   const containerStyle = {
     width: '100%',
@@ -43,10 +44,22 @@ const CustomShapeNode = ({ data }) => {
     })
   };
 
+  const textStyle = {
+    position: 'relative',
+    zIndex: 2,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center',
+    width: '100%',
+    wordBreak: 'break-word',
+    display: hideLabel ? 'none' : 'block'
+  };
+
   return React.createElement('div', {
     style: containerStyle,
     className: 'custom-shape-node',
-    'data-shape': isTriangle ? 'triangle' : isCircle ? 'circle' : isDiamond ? 'diamond' : 'default'
+    'data-shape': isTriangle ? 'triangle' : isCircle ? 'circle' : isDiamond ? 'diamond' : 'default',
+    'data-hide-label': hideLabel ? 'true' : 'false'
   }, [
     React.createElement(Handle, { 
       type: 'target', 
@@ -56,11 +69,8 @@ const CustomShapeNode = ({ data }) => {
     React.createElement('div', {
       style: shapeStyle,
     }, React.createElement('div', {
-      style: {
-        position: 'relative',
-        zIndex: 2
-      }
-    }, data.label || data.title)),
+      style: textStyle
+    }, !hideLabel ? (data.label || data.title || 'Node') : '')),
     React.createElement(Handle, { 
       type: 'source', 
       position: 'bottom',
@@ -160,63 +170,147 @@ const absolute = {
 };
 
 export async function toHtml(flow) {
-  const content = toStaticMarkup(flow);
+  const edges = flow.edges || [];
+  const nodes = flow.nodes;
+  const { width, height, title, subtitle, position, font } = flow;
+  const content = toStaticMarkup({
+    edges,
+    nodes,
+    width,
+    height,
+  });
+
+  // Set up absolute positioning based on the requested position
+  const absolute = {
+    'top-left': 'top: 20px; left: 20px',
+    'top-right': 'top: 20px; right: 20px',
+    'bottom-left': 'bottom: 20px; left: 20px',
+    'bottom-right': 'bottom: 20px; right: 20px',
+  };
 
   return `
     <!DOCTYPE html>
-    <html style="overflow: hidden;">
+    <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>${styles}</style>
+        <title>${title || 'Architecture Diagram'}</title>
         <style>
-          html, body { 
+          * {
+            box-sizing: border-box;
             margin: 0; 
             padding: 0;
-            font-family: Arial, sans-serif; 
+          }
+          
+          body, html {
+            width: 100%;
+            height: 100%;
+            font-family: ${font || 'Arial, sans-serif'};
+            overflow: hidden;
             background-color: white;
+          }
+          
+          .header {
+            position: absolute;
+            ${absolute[position || 'top-left']};
+            z-index: 10;
+            background-color: transparent;
+            max-width: 70%;
+          }
+          
+          h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #333;
+          }
+          
+          p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+          }
+
+          /* ReactFlow Styles */
+          .react-flow {
+            position: relative;
             width: 100%;
             height: 100%;
             overflow: hidden;
           }
-          .react-flow {
+          
+          .react-flow__renderer {
+            z-index: 0;
+            position: absolute;
             width: 100%;
             height: 100%;
-            background-color: white;
           }
+          
+          .react-flow__node {
+            position: absolute;
+            user-select: none;
+            pointer-events: all;
+            transform-origin: 0 0;
+            transition: none !important;
+            z-index: 1;
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+          
+          .react-flow__edge {
+            position: absolute;
+            pointer-events: all;
+            z-index: 0;
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+          
+          .react-flow__edge-path {
+            stroke: #555555;
+            stroke-width: 2px;
+            fill: none;
+            opacity: 1 !important;
+            visibility: visible !important;
+          }
+          
           .custom-shape-node {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             width: 100%;
             height: 100%;
             position: relative;
+            opacity: 1 !important;
+            visibility: visible !important;
           }
-          .custom-shape-node[data-shape="triangle"] > div:nth-child(2) {
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%) !important;
+          
+          .custom-shape-node[data-shape="circle"] > div {
+            border-radius: 50%;
           }
-          .custom-shape-node[data-shape="circle"] > div:nth-child(2) {
-            border-radius: 50% !important;
+          
+          .custom-shape-node[data-shape="triangle"] > div {
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
           }
-          .custom-shape-node[data-shape="diamond"] > div:nth-child(2) {
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%) !important;
+          
+          .custom-shape-node[data-shape="diamond"] > div {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
           }
-          .react-flow__handle {
-            background-color: #1a192b;
-            width: 8px;
-            height: 8px;
-            z-index: 3;
+          
+          .react-flow__edge.animated path {
+            stroke-dasharray: 5;
+            animation: dashdraw 0.5s linear infinite;
           }
-          .react-flow__edge {
-            z-index: 1;
-          }
-          .react-flow__edge-path {
-            stroke: #555;
-            stroke-width: 2;
+          
+          @keyframes dashdraw {
+            from {
+              stroke-dashoffset: 10;
+            }
           }
         </style>
       </head>
-      <body style="width: ${flow.width}px; height: ${flow.height}px; margin: 0; padding: 0; background-color: white;">
-        <header style="position: absolute; top: 20px; left: 20px; font-family: ${flow.font.replace('"', "'")}; z-index: 10;">
-          <h1 style="line-height: 1; margin-bottom: 16px">${flow.title}</h1>
-          <div>${flow.subtitle}</div>
+      <body>
+        <header class="header">
+          <h1>${title || 'Architecture Diagram'}</h1>
+          ${subtitle ? `<p>${subtitle}</p>` : ''}
         </header>
         <div style="width: 100%; height: 100%; position: relative;">
           ${content}
@@ -225,53 +319,130 @@ export async function toHtml(flow) {
     </html>`;
 }
 
-const browser = await puppeteer.launch({
+// Add this function instead
+async function getBrowser() {
+  try {
+    return await puppeteer.launch({
   args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   ignoreHTTPSErrors: true,
   headless: 'new',
   protocolTimeout: 60000,
 });
+  } catch (err) {
+    console.error('Failed to launch browser:', err);
+    throw new Error('Failed to initialize browser for image generation');
+  }
+}
 
 export async function toImage(flow, type) {
+  let browser;
   let page;
   try {
+    // Create a browser instance
+    browser = await getBrowser();
+    
+    // Open a new page
     page = await browser.newPage();
+    
+    // Enable console logging from the page
+    page.on('console', msg => console.log(`PAGE LOG: ${msg.text()}`));
+    
+    // Set viewport to match flow dimensions with higher resolution
     await page.setViewport({ 
       width: flow.width, 
       height: flow.height,
-      deviceScaleFactor: 2 // Increase resolution for better quality
+      deviceScaleFactor: 2 // Higher resolution for sharper image
     });
     
+    // Generate HTML content
     const html = await toHtml(flow);
+    
+    // Set the page content with long timeout
     await page.setContent(html, {
       waitUntil: 'networkidle0',
       timeout: 30000
     });
 
-    // Wait for ReactFlow to initialize
-    await page.waitForFunction(() => {
-      return document.querySelector('.react-flow') !== null;
-    }, { timeout: 5000 });
-
-    const image = await page.screenshot({ 
-      type,
-      timeout: 30000,
-      clip: {
-        x: 0,
-        y: 0,
-        width: flow.width,
-        height: flow.height
+    // Hide the header to match the Flow Data Editor view
+    await page.evaluate(() => {
+      // Hide the header
+      const header = document.querySelector('.header');
+      if (header) {
+        header.style.display = 'none';
       }
-    });
 
+      // Set the background to match the Flow Data Editor's dotted pattern
+      document.body.style.backgroundColor = 'white';
+      document.body.style.backgroundImage = 'radial-gradient(#ddd 1px, transparent 1px)';
+      document.body.style.backgroundSize = '20px 20px';
+      document.body.style.backgroundPosition = '0 0';
+      
+      // Ensure ReactFlow container is properly sized
+      const reactFlowNode = document.querySelector('.react-flow');
+      if (reactFlowNode) {
+        reactFlowNode.style.transform = 'translate(0px, 0px) scale(1)';
+        reactFlowNode.style.width = '100%';
+        reactFlowNode.style.height = '100%';
+        console.log('ReactFlow container dimensions:', 
+          reactFlowNode.offsetWidth, 'x', reactFlowNode.offsetHeight);
+      }
+      
+      // Apply styles that match the Flow Data Editor
+      document.querySelectorAll('.react-flow__node').forEach(node => {
+        node.style.opacity = '1';
+        node.style.visibility = 'visible';
+        node.style.transform = node.style.transform || 'translate(0px, 0px)';
+        
+        // Match the Flow Data Editor node styling
+        const shapeNode = node.querySelector('.custom-shape-node');
+        if (shapeNode) {
+          const shape = shapeNode.getAttribute('data-shape');
+          const innerDiv = shapeNode.querySelector('div');
+          
+          if (innerDiv) {
+            // Apply exact styling from Flow Data Editor
+            innerDiv.style.backgroundColor = 'white';
+            innerDiv.style.border = '2px solid #1a192b';
+            
+            // Style specific shapes to match editor view
+            if (shape === 'circle') {
+              innerDiv.style.borderRadius = '50%';
+            } else if (shape === 'triangle') {
+              innerDiv.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+            } else if (shape === 'diamond') {
+              innerDiv.style.clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+            }
+          }
+        }
+      });
+      
+      // Ensure edges have the right appearance
+      document.querySelectorAll('.react-flow__edge-path').forEach(path => {
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('stroke', '#555');
+        path.setAttribute('stroke-linecap', 'round');
+      });
+    });
+    
+    // Wait for everything to render correctly
+    await page.waitForTimeout(1000);
+    
+    // Take a screenshot that matches the Flow Data Editor view
+    console.log('[SERVER] Taking screenshot...');
+    const image = await page.screenshot({ 
+      type: type === 'jpeg' ? 'jpeg' : 'png',
+      quality: type === 'jpeg' ? 95 : undefined,
+      omitBackground: false,
+    });
+    
+    console.log(`[SERVER] Screenshot successful, size: ${image.length} bytes`);
     return image;
   } catch (error) {
     console.error('Error generating image:', error);
     throw error;
   } finally {
-    if (page) {
-      await page.close().catch(console.error);
-    }
+    if (page) await page.close().catch(console.error);
+    if (browser) await browser.close().catch(console.error);
   }
 }
 
@@ -279,30 +450,46 @@ export default Flow;
 
 function toStaticMarkup({ width, height, edges, ...flow }) {
   const nodes = flow.nodes.map((node) => {
-    const isTriangle = node.data?.iconSrc?.includes('triangle');
-    const isCircle = node.data?.iconSrc?.includes('circle');
-    const isDiamond = node.data?.iconSrc?.includes('diamond');
+    // Detect shape from multiple sources
+    const isTriangle = 
+      node.data?.iconSrc?.includes('triangle') || 
+      node.data?.shape === 'triangle' || 
+      node.type === 'triangle';
+    
+    const isCircle = 
+      node.data?.iconSrc?.includes('circle') || 
+      node.data?.shape === 'circle' || 
+      node.type === 'circle';
+    
+    const isDiamond = 
+      node.data?.iconSrc?.includes('diamond') || 
+      node.data?.shape === 'diamond' || 
+      node.type === 'diamond';
     
     let shape = 'default';
     if (isTriangle) shape = 'triangle';
     else if (isCircle) shape = 'circle';
     else if (isDiamond) shape = 'diamond';
 
+    // Process the node data to match Flow Data Editor view
     return {
       ...node,
       type: 'custom-shape',
       data: {
         ...node.data,
         label: node.data?.label || node.data?.title || node.id,
-        shape: shape
+        shape: shape,
+        hideLabel: node.data?.hideLabel === true
       },
       style: {
-        ...node.style,
+        ...(node.style || {}),
         width: node.width || 150,
-        height: node.height || 150 // Make height equal to width for better shape proportions
+        height: node.height || 150
       }
     };
   });
+
+  console.log(`Processed ${nodes.length} nodes and ${edges.length} edges for rendering`);
 
   return renderToStaticMarkup(
     React.createElement(Flow, {
@@ -313,9 +500,10 @@ function toStaticMarkup({ width, height, edges, ...flow }) {
         id: edge.id || `${edge.source}-${edge.target}`,
         source: edge.source,
         target: edge.target,
-        type: edge.type || 'smoothstep',
-        animated: edge.animated || true,
+        type: 'smoothstep',
+        animated: false,  // Disable animation for export
         style: {
+          ...(edge.style || {}),
           stroke: edge.data?.color || '#555',
           strokeWidth: 2
         }
