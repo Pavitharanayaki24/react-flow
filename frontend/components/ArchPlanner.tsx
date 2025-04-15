@@ -379,7 +379,7 @@ const ArchPlanner = () => {
       const edge = {
         ...params,
         id: `${Date.now()}-${params.source}-${params.target}`,
-        type: 'editable-edge',
+        type: 'smoothstep',
         selected: false,
         data: {
           algorithm: DEFAULT_ALGORITHM,
