@@ -30,7 +30,7 @@ export function ControlPoint({
   active,
   setControlPoints,
 }: ControlPointProps) {
-  const container = useStore((store) => store.domNode);
+  const container = useStore((store: { domNode: any; }) => store.domNode);
   const { screenToFlowPosition } = useReactFlow();
   const [dragging, setDragging] = useState(false);
   const ref = useRef<SVGCircleElement>(null);

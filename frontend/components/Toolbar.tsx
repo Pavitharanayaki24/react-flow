@@ -17,11 +17,7 @@ interface BaseEdge {
 
 // Define edge variants outside of component to prevent re-creation
 const edgeVariants = [
-  {
-    algorithm: Algorithm.Default,
-    label: 'Default',
-    color: COLORS[Algorithm.Default]
-  },
+ 
   {
     algorithm: Algorithm.Linear,
     label: 'Linear',
@@ -50,6 +46,8 @@ export function Toolbar() {
   const transform = useStore((store) => store.transform);
 
   // Find the selected edge
+  const edgess=useEdges();
+  console.log(edgess);
   const selectedEdge = useMemo(() => 
     edges.find((edge: BaseEdge) => edge.selected) as EditableEdge | undefined,
     [edges]

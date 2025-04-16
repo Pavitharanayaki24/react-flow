@@ -552,15 +552,18 @@ const ArchPlanner = () => {
         }}
       />
       <TopBar 
-        title={title} 
-        setTitle={setTitle} 
-        undo={undo} 
-        redo={redo} 
-        cut={cut} 
-        copy={copy} 
-        paste={paste}
-        onPreview={() => setIsPreviewOpen(true)}
-      />
+          title={title}
+          setTitle={setTitle}
+          undo={undo}
+          redo={redo}
+          cut={cut}
+          copy={copy}
+          paste={paste}
+          onPreview={() => setIsPreviewOpen(true)} onEChange={function (): void {
+            throw new Error("Function not implemented.");
+          } }  
+          onEChange={{edges.some(edge => edge.selected) && <Toolbar />}
+        }    />
       <UserInfoBar />
       <RocketCounter />
       <BottomControls />
@@ -589,7 +592,7 @@ const ArchPlanner = () => {
             horizontal={helperLineHorizontal}
             vertical={helperLineVertical}
           />
-          {edges.some(edge => edge.selected) && <Toolbar />}
+          {/* {edges.some(edge => edge.selected) && <Toolbar />} */}
         </ReactFlow>
       </div>
       <PreviewModal

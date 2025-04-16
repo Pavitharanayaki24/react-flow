@@ -79,7 +79,7 @@ export function EditableEdgeComponent({
 
   const setControlPoints = useCallback(
     (update: (points: ControlPointData[]) => ControlPointData[]) => {
-      setEdges((edges) =>
+      setEdges((edges: any[]) =>
         edges.map((e) => {
           if (e.id !== id) return e;
           if (!isEditableEdge(e)) return e;
