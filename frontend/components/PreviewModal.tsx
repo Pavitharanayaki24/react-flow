@@ -7,22 +7,30 @@ import ReactFlow, {
   useReactFlow,
   Panel,
   Handle,
-  useStore
+  useStore,
+  Position,
+  BackgroundVariant,
+  EdgeTypes,
+  BezierEdge,
+  StraightEdge,
+  StepEdge
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Editor } from '@monaco-editor/react';
+import { EditableEdge } from './edges/EditableEdge';
+import { COLORS, Algorithm } from './edges/constants';
 
 // Custom Node Components
 const SquareNode = memo(({ data }: { data: any }) => (
   <div className="w-[125px] h-[125px] bg-white border-2 border-gray-800 rounded-md">
-    <Handle type="target" position="top" />
-    <Handle type="source" position="bottom" />
+    <Handle type="target" position={Position.Top} />
+    <Handle type="source" position={Position.Bottom} />
   </div>
 ));
 
 const TriangleNode = memo(({ data }: { data: any }) => (
   <div className="w-[125px] h-[125px]">
-    <Handle type="target" position="top" />
+    <Handle type="target" position={Position.Top} />
     <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
       <path
         d="M50 5 L95 95 L5 95 Z"
@@ -31,26 +39,26 @@ const TriangleNode = memo(({ data }: { data: any }) => (
         strokeWidth="2"
       />
     </svg>
-    <Handle type="source" position="bottom" />
+    <Handle type="source" position={Position.Bottom} />
   </div>
 ));
 
 const CircleNode = memo(({ data }: { data: any }) => (
   <div className="w-[125px] h-[125px] rounded-full bg-white border-2 border-gray-800">
-    <Handle type="target" position="top" />
-    <Handle type="source" position="bottom" />
+    <Handle type="target" position={Position.Top} />
+    <Handle type="source" position={Position.Bottom} />
   </div>
 ));
 
 const DiamondNode = memo(({ data }: { data: any }) => (
   <div className="w-[125px] h-[125px]">
-    <Handle type="target" position="top" />
+    <Handle type="target" position={Position.Top} />
     <div className="w-full h-full" style={{
       clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
       backgroundColor: 'white',
       border: '2px solid #1a1a1a'
     }} />
-    <Handle type="source" position="bottom" />
+    <Handle type="source" position={Position.Bottom} />
   </div>
 ));
 
@@ -60,6 +68,16 @@ const nodeTypes = {
   triangle: TriangleNode,
   circle: CircleNode,
   diamond: DiamondNode
+};
+
+// Edge type mapping
+const edgeTypes = {
+  'editable-edge': EditableEdge,
+  'smoothstep': EditableEdge,
+  'default': EditableEdge,
+  'straight': EditableEdge,
+  'step': EditableEdge,
+  'simplebezier': EditableEdge
 };
 
 interface FlowNode {
@@ -125,10 +143,31 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
     if (isOpen) {
       const updatedNodes = nodes.map(node => ({
         ...node,
-        type: node.type // Preserve original node type
+        type: node.type
       }));
+
+      // Preserve exact edge types, algorithms, and colors
+      const updatedEdges = edges.map(edge => {
+        const algorithm = edge.data?.algorithm as Algorithm || 'default';
+        const color = edge.data?.color || COLORS[algorithm];
+        
+        return {
+          ...edge,
+          type: edge.type || 'editable-edge',
+          data: {
+            ...edge.data,
+            algorithm,
+            color
+          },
+          style: {
+            ...edge.style,
+            stroke: color
+          }
+        };
+      });
+
       setPreviewNodes(updatedNodes);
-      setPreviewEdges(edges);
+      setPreviewEdges(updatedEdges);
       generateCode();
       setTimeout(() => fitView({ padding: 0.2 }), 100);
     }
@@ -148,8 +187,8 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
         id: edge.id,
         source: edge.source,
         target: edge.target,
-        type: edge.type || 'smoothstep',
-        animated: edge.animated || true
+        type: edge.type,
+        data: edge.data
       }))
     };
 
@@ -803,6 +842,7 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
                 nodes={previewNodes}
                 edges={previewEdges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 fitView
                 nodesDraggable={false}
                 nodesConnectable={false}
@@ -810,12 +850,8 @@ const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, nodes, edg
                 minZoom={0.1}
                 maxZoom={2}
                 defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-                defaultEdgeOptions={{
-                  type: 'smoothstep',
-                  animated: true
-                }}
               >
-                <Background variant="dots" gap={20} size={1} />
+                <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
                 <MiniMap />
                 <Controls />
                 <Panel position="top-right">
