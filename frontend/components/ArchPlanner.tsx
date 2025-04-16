@@ -22,7 +22,8 @@ import ReactFlow, {
   ConnectionMode,
   OnConnect,
   Panel,
-  useEdgesState
+  useEdgesState,
+  BackgroundVariant
 } from "reactflow";
 import {useStore} from './store'
 import {  EditableEdge } from './edges/EditableEdge';
@@ -267,8 +268,13 @@ const nodeTypes: NodeTypes = {
 // Define edgeTypes outside the component to prevent recreation on each render
 const edgeTypes = {
   'editable-edge': EditableEdge,
-  type: 'smoothstep',
+  'smoothstep': EditableEdge,
+  'catmull': EditableEdge,
+  'linear': EditableEdge,
+  'bezier': EditableEdge
 };
+
+
 
 const isAwsIcon = (iconSrc: string) => {
   return iconSrc.toLowerCase().includes('aws');
@@ -280,12 +286,15 @@ const ArchPlanner = () => {
   const [title, setTitle] = useState("Untitled Mural");
   const [clickedIcon, setClickedIcon] = useState<{ iconSrc: string; title: string } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [showEdgeTypeOptions, setShowEdgeTypeOptions] = useState(false);
 
   // Reset preview state on page load and when component unmounts
   useEffect(() => {
     setIsPreviewOpen(false);
+    setShowEdgeTypeOptions(false);
     return () => {
       setIsPreviewOpen(false);
+      setShowEdgeTypeOptions(false);
     };
   }, []);
 
@@ -490,7 +499,11 @@ const ArchPlanner = () => {
   };
 
   const handleFlowUpdate = (newNodes: Node[], newEdges: Edge[]) => {
-    setNodes(newNodes);
+    const updatedNodes = newNodes.map(node => ({
+      ...node,
+      type: node.type || 'square' // Ensure type is never undefined
+    }));
+    setNodes(updatedNodes);
     setEdges(newEdges);
     takeSnapshot();
   };
@@ -519,39 +532,43 @@ const ArchPlanner = () => {
     []
   );
 
+  const handleEdgeTypeSelect = () => {
+    setShowEdgeTypeOptions(!showEdgeTypeOptions);
+  };
+
   return (
     <ReactFlowProvider>
-    <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
-      <Sidebar
-        onClickPlaceIcon={(icon) => {
-          const randomPosition = {
-            x: 600 + Math.floor(Math.random() * 200) - 100,
-            y: Math.floor(Math.random() * 600),
-          };
-          // Determine node type based on the icon title
-          let nodeType = 'square';
-          if (icon.title.toLowerCase().includes('triangle')) {
-            nodeType = 'triangle';
-          } else if (icon.title.toLowerCase().includes('circle')) {
-            nodeType = 'circle';
-          } else if (icon.title.toLowerCase().includes('diamond')) {
-            nodeType = 'diamond';
-          }
-          const newNode: Node = {
-            id: uuidv4(),
-            type: nodeType,
-            position: randomPosition,
-            data: {
-              iconSrc: icon.iconSrc,
-              title: icon.title,
-            },
-            style: { width: 125, height: 125 },
-          };
-          setNodes((prev: Node[]) => [...prev, newNode]);
-          takeSnapshot();
-        }}
-      />
-      <TopBar 
+      <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
+        <Sidebar
+          onClickPlaceIcon={(icon) => {
+            const randomPosition = {
+              x: 600 + Math.floor(Math.random() * 200) - 100,
+              y: Math.floor(Math.random() * 600),
+            };
+            // Determine node type based on the icon title
+            let nodeType = 'square';
+            if (icon.title.toLowerCase().includes('triangle')) {
+              nodeType = 'triangle';
+            } else if (icon.title.toLowerCase().includes('circle')) {
+              nodeType = 'circle';
+            } else if (icon.title.toLowerCase().includes('diamond')) {
+              nodeType = 'diamond';
+            }
+            const newNode: Node = {
+              id: uuidv4(),
+              type: nodeType,
+              position: randomPosition,
+              data: {
+                iconSrc: icon.iconSrc,
+                title: icon.title,
+              },
+              style: { width: 125, height: 125 },
+            };
+            setNodes((prev: Node[]) => [...prev, newNode]);
+            takeSnapshot();
+          }}
+        />
+        <TopBar 
           title={title}
           setTitle={setTitle}
           undo={undo}
@@ -559,50 +576,118 @@ const ArchPlanner = () => {
           cut={cut}
           copy={copy}
           paste={paste}
-          onPreview={() => setIsPreviewOpen(true)} onEChange={function (): void {
-            throw new Error("Function not implemented.");
-          } }  
-          onEChange={{edges.some(edge => edge.selected) && <Toolbar />}
-        }    />
-      <UserInfoBar />
-      <RocketCounter />
-      <BottomControls />
-      <Footer />
-      <div onClick={handleCanvasClick} className="w-full h-screen overflow-auto">
-        <ReactFlow
-          nodes={nodes.map((node: Node) => ({
+          onPreview={() => setIsPreviewOpen(true)}
+          onEChange={() => {
+            if (edges.some(edge => edge.selected)) {
+              return <Toolbar />;
+            }
+            return null;
+          }}
+          onEdgeTypeSelect={handleEdgeTypeSelect}
+        />
+        {showEdgeTypeOptions && (
+          <div className="absolute top-14 left-[420px] bg-white border border-gray-200 p-4 rounded-lg shadow-lg z-20">
+            <div className="flex flex-col space-y-2">
+              <button 
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                onClick={() => {
+                  // Set edge type to catmull-rom
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'editable-edge',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'catmull-rom',
+                      points: edge.data?.points || []
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                Catmull-Rom
+              </button>
+              <button 
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                onClick={() => {
+                  // Set edge type to linear
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'smoothstep',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'linear'
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                Linear
+              </button>
+              <button 
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                onClick={() => {
+                  // Set edge type to bezier-catmull-rom
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'smoothstep',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'bezier-catmull-rom',
+                      points: []
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                Bezier-Catmull-Rom
+              </button>
+            </div>
+          </div>
+        )}
+        <UserInfoBar />
+        <RocketCounter />
+        <BottomControls />
+        <Footer />
+        <div onClick={handleCanvasClick} className="w-full h-screen overflow-auto">
+          <ReactFlow
+            nodes={nodes.map((node: Node) => ({
+              ...node,
+              type: node.type || 'square',
+              data: { ...node.data, selected: node.selected || false },
+            }))}
+            edges={edges}
+            onConnect={onConnect}
+            onNodesChange={onNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onNodeDragStop={onNodeDragStop}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            connectionMode={ConnectionMode.Loose}
+            connectionLineComponent={ConnectionLine}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+            <MiniMap style={{ position: "absolute", bottom: "60px" }} />
+            <HelperLines
+              horizontal={helperLineHorizontal}
+              vertical={helperLineVertical}
+            />
+          </ReactFlow>
+        </div>
+        <PreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          nodes={nodes.map(node => ({
             ...node,
-            data: { ...node.data, selected: node.selected || false },
+            type: node.type || 'square', // Ensure type is never undefined
+            width: node.width || 125, // Ensure width is never null
+            height: node.height || 125 // Ensure height is never null
           }))}
           edges={edges}
-          onConnect={onConnect}
-          onNodesChange={onNodesChange}
-          onEdgesChange={handleEdgesChange}
-          onNodeDragStop={onNodeDragStop}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          connectionMode={ConnectionMode.Loose}
-          connectionLineComponent={ConnectionLine}
-        >
-          <Background variant="dots" gap={20} size={1} />
-          <MiniMap style={{ position: "absolute", bottom: "60px" }} />
-          <HelperLines
-            horizontal={helperLineHorizontal}
-            vertical={helperLineVertical}
-          />
-          {/* {edges.some(edge => edge.selected) && <Toolbar />} */}
-        </ReactFlow>
+          onUpdateFlow={handleFlowUpdate}
+        />
       </div>
-      <PreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        nodes={nodes}
-        edges={edges}
-        onUpdateFlow={handleFlowUpdate}
-      />
-    </div>
     </ReactFlowProvider>
   );
 };
