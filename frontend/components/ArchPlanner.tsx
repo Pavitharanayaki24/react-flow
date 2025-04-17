@@ -267,7 +267,7 @@ const nodeTypes: NodeTypes = {
 
 // Define edgeTypes outside the component to prevent recreation on each render
 const edgeTypes = {
-  'editable-edge': EditableEdge,
+ 'editable-edge': EditableEdge,
   'smoothstep': EditableEdge,
   'catmull': EditableEdge,
   'linear': EditableEdge,
@@ -594,7 +594,7 @@ const ArchPlanner = () => {
                   // Set edge type to catmull-rom
                   setEdges(edges.map(edge => ({
                     ...edge,
-                    type: 'editable-edge',
+                    type: 'smoothstep',
                     data: {
                       ...edge.data,
                       algorithm: 'catmull-rom',
@@ -612,7 +612,7 @@ const ArchPlanner = () => {
                   // Set edge type to linear
                   setEdges(edges.map(edge => ({
                     ...edge,
-                    type: 'smoothstep',
+                    edgetype: 'smoothstep',
                     data: {
                       ...edge.data,
                       algorithm: 'linear'
