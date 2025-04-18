@@ -282,11 +282,12 @@ const isAwsIcon = (iconSrc: string) => {
 
 const ArchPlanner = () => {
   const [nodes, setNodes] = useNodesState([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [edges, setEdges] = useEdgesState([]);
   const [title, setTitle] = useState("Untitled Mural");
   const [clickedIcon, setClickedIcon] = useState<{ iconSrc: string; title: string } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showEdgeTypeOptions, setShowEdgeTypeOptions] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Reset preview state on page load and when component unmounts
   useEffect(() => {
@@ -297,6 +298,16 @@ const ArchPlanner = () => {
       setShowEdgeTypeOptions(false);
     };
   }, []);
+
+  // Make sure nodes and edges are properly re-initialized after closing the preview
+  useEffect(() => {
+    if (!isPreviewOpen) {
+      // Trigger a re-render of the ReactFlow component
+      setTimeout(() => {
+        setForceUpdate(prev => prev + 1);
+      }, 100);
+    }
+  }, [isPreviewOpen]);
 
   const getNodes = () => nodes;
   const getEdges = () => edges;
@@ -382,29 +393,22 @@ const ArchPlanner = () => {
   }, []);
 
   const onConnect = useCallback(
-    (params: Edge | Connection) => {
+    (params: Connection) => {
+      setEdges((eds) => {
+        const newEdge = {
+          ...params,
+          id: `edge-${uuidv4()}`,
+          type: 'editable-edge',
+          data: {
+            algorithm: DEFAULT_ALGORITHM,
+            points: []
+          }
+        };
+        return addEdge(newEdge, eds);
+      });
       takeSnapshot();
-      const { connectionLinePath } = useStore.getState();
-      const edge = {
-        ...params,
-        id: `${Date.now()}-${params.source}-${params.target}`,
-        type: 'smoothstep',
-        selected: false,
-        data: {
-          algorithm: DEFAULT_ALGORITHM,
-          points: connectionLinePath ? connectionLinePath.map(
-            (point: any, i: number) => ({
-              ...point,
-              id: window.crypto.randomUUID(),
-              prev: i === 0 ? undefined : i - 1,
-              active: true
-            })
-          ) : []
-        }
-      };
-      setEdges((eds) => addEdge(edge, eds));
     },
-    [takeSnapshot]
+    [setEdges, takeSnapshot]
   );
 
   const onNodeDragStop = useCallback(
@@ -499,12 +503,28 @@ const ArchPlanner = () => {
   };
 
   const handleFlowUpdate = (newNodes: Node[], newEdges: Edge[]) => {
+    console.log("Updating flow with:", newNodes.length, "nodes and", newEdges.length, "edges");
+    
     const updatedNodes = newNodes.map(node => ({
       ...node,
       type: node.type || 'square' // Ensure type is never undefined
     }));
+    
+    // Update nodes first
     setNodes(updatedNodes);
-    setEdges(newEdges);
+    
+    // Then update edges with proper types
+    const updatedEdges = newEdges.map(edge => ({
+      ...edge,
+      type: edge.type || 'editable-edge',
+      data: {
+        ...edge.data,
+        algorithm: edge.data?.algorithm || DEFAULT_ALGORITHM,
+        points: edge.data?.points || []
+      }
+    }));
+    
+    setEdges(updatedEdges);
     takeSnapshot();
   };
 
@@ -660,6 +680,7 @@ const ArchPlanner = () => {
         <Footer />
         <div onClick={handleCanvasClick} className="w-full h-screen overflow-auto">
           <ReactFlow
+            key={`react-flow-${forceUpdate}`}
             nodes={nodes.map((node: Node) => ({
               ...node,
               type: node.type || 'square',
@@ -687,12 +708,18 @@ const ArchPlanner = () => {
         </div>
         <PreviewModal
           isOpen={isPreviewOpen}
-          onClose={() => setIsPreviewOpen(false)}
+          onClose={() => {
+            setIsPreviewOpen(false);
+            // Force a redraw of ReactFlow after closing the modal
+            setTimeout(() => {
+              setForceUpdate(prev => prev + 1);
+            }, 100);
+          }}
           nodes={nodes.map(node => ({
             ...node,
-            type: node.type || 'square', // Ensure type is never undefined
-            width: node.width || 125, // Ensure width is never null
-            height: node.height || 125 // Ensure height is never null
+            type: node.type || 'square',
+            width: node.width || 125,
+            height: node.height || 125
           }))}
           edges={edges}
           onUpdateFlow={handleFlowUpdate}
