@@ -589,7 +589,7 @@ const ArchPlanner = () => {
           <div className="absolute top-14 left-[420px] bg-white border border-gray-200 p-4 rounded-lg shadow-lg z-20">
             <div className="flex flex-col space-y-2">
               <button 
-                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap flex items-center"
                 onClick={() => {
                   // Set edge type to catmull-rom
                   setEdges(edges.map(edge => ({
@@ -604,10 +604,13 @@ const ArchPlanner = () => {
                   setShowEdgeTypeOptions(false);
                 }}
               >
+                <svg width="50" height="24" viewBox="0 0 50 24" className="mr-2">
+                  <path d="M5,12 Q15,4 25,12 Q35,20 45,12" stroke="#F06292" strokeWidth="3" fill="none" />
+                </svg>
                 Catmull-Rom
               </button>
               <button 
-                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap flex items-center"
                 onClick={() => {
                   // Set edge type to linear
                   setEdges(edges.map(edge => ({
@@ -621,10 +624,13 @@ const ArchPlanner = () => {
                   setShowEdgeTypeOptions(false);
                 }}
               >
+                <svg width="50" height="24" viewBox="0 0 50 24" className="mr-2">
+                  <line x1="5" y1="12" x2="45" y2="12" stroke="#03A9F4" strokeWidth="3" />
+                </svg>
                 Linear
               </button>
               <button 
-                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap"
+                className="px-4 py-2 hover:bg-gray-100 rounded text-left whitespace-nowrap flex items-center"
                 onClick={() => {
                   // Set edge type to bezier-catmull-rom
                   setEdges(edges.map(edge => ({
@@ -639,6 +645,10 @@ const ArchPlanner = () => {
                   setShowEdgeTypeOptions(false);
                 }}
               >
+                <svg width="50" height="24" viewBox="0 0 50 24" className="mr-2">
+                  <path d="M5,12 C15,0 35,24 45,12" stroke="#00BFA5" strokeWidth="3" fill="none" />
+                  <circle cx="5" cy="12" r="3" fill="#00BFA5" />
+                </svg>
                 Bezier-Catmull-Rom
               </button>
             </div>

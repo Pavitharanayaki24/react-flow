@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaAws, FaShapes } from "react-icons/fa";
 import { MdImage, MdEdit, MdSave, MdTextFields } from "react-icons/md";
 import ShapeIconsPanel from "../panels/ShapeIconsPanel 2";
@@ -23,6 +23,21 @@ const iconList = [
   }) => {
     const [selectedIconId, setSelectedIconId] = useState<number | null>(null);
   
+    useEffect(() => {
+      // Remove fdprocessedid attributes after mount
+      const removeFdProcessedId = () => {
+        document.querySelectorAll('[fdprocessedid]').forEach(el => {
+          el.removeAttribute('fdprocessedid');
+        });
+      };
+      
+      // Run immediately and also after a short delay to catch any late-added attributes
+      removeFdProcessedId();
+      const timeoutId = setTimeout(removeFdProcessedId, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }, []);
+  
     const handleIconClick = (id: number) => {
       setSelectedIconId((prev) => (prev === id ? null : id));
     };
@@ -45,6 +60,7 @@ const iconList = [
                 <button
                   onClick={() => handleIconClick(iconObj.id)}
                   title={iconObj.title}
+                  data-fdprocessedid="false"
                   className={`p-2 rounded transition-colors ${
                     selectedIconId === iconObj.id ? "bg-blue-500" : "hover:bg-gray-700"
                   }`}
