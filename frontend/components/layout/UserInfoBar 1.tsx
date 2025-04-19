@@ -22,10 +22,10 @@ export const UserInfoBar = () => {
 
   return (
     <div className="absolute top-2 right-24 bg-white border border-gray-200 h-12 px-4 py-2 flex items-center space-x-4 rounded-lg z-10">
-      <button className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm" data-fdprocessedid="false">Facilitate</button>
+      <button className="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200 text-sm" suppressHydrationWarning>Facilitate</button>
       <div className="w-px h-6 bg-gray-300" />
       <FaCommentDots size={18} className="text-gray-700 cursor-pointer hover:text-gray-900" />
-      <button className="flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm" data-fdprocessedid="false">
+      <button className="flex items-center space-x-1 bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm" suppressHydrationWarning>
         <FaShareAlt size={16} />
         <span>Share</span>
       </button>

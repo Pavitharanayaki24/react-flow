@@ -60,7 +60,7 @@ const iconList = [
                 <button
                   onClick={() => handleIconClick(iconObj.id)}
                   title={iconObj.title}
-                  data-fdprocessedid="false"
+                  suppressHydrationWarning
                   className={`p-2 rounded transition-colors ${
                     selectedIconId === iconObj.id ? "bg-blue-500" : "hover:bg-gray-700"
                   }`}
