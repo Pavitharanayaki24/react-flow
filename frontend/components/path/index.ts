@@ -61,10 +61,14 @@ export function getPath(
   switch (algorithm) {
     case Algorithm.Default:
       logAlgorithm('DEFAULT standard edge path', algorithm);
-      // For default edges, return empty string to use ReactFlow's default rendering
+      // For default edges, use smoothstep path
       if (points.length < 2) return '';
       const [source, target] = [points[0], points[points.length - 1]];
-      return `M ${source.x} ${source.y} L ${target.x} ${target.y}`;
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const controlPoint1 = { x: source.x + dx * 0.5, y: source.y };
+      const controlPoint2 = { x: target.x - dx * 0.5, y: target.y };
+      return `M ${source.x} ${source.y} C ${controlPoint1.x} ${controlPoint1.y}, ${controlPoint2.x} ${controlPoint2.y}, ${target.x} ${target.y}`;
       
     case Algorithm.Linear:
       logAlgorithm('LINEAR path', algorithm);

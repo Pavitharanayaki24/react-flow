@@ -429,34 +429,38 @@ const IconNode = ({
 
       {/* Shape Selection Menu */}
       {(showShapes || selectedArrow) && (hoveredHandle || selectedArrow) && (
-        <div 
-          className={`absolute bg-white shadow-md rounded-lg p-3 z-50 grid grid-cols-1 gap-3`}
-          style={{
-            left: (hoveredHandle || selectedArrow) === Position.Right ? '100%' : 
-                  (hoveredHandle || selectedArrow) === Position.Left ? 'auto' : '50%',
-            right: (hoveredHandle || selectedArrow) === Position.Left ? '100%' : 'auto',
-            top: (hoveredHandle || selectedArrow) === Position.Bottom ? '100%' : 
-                  (hoveredHandle || selectedArrow) === Position.Top ? 'auto' : '50%',
-            bottom: (hoveredHandle || selectedArrow) === Position.Top ? '100%' : 'auto',
-            transform: (hoveredHandle || selectedArrow) === Position.Right ? 'translate(53px, -50%)' :
-                      (hoveredHandle || selectedArrow) === Position.Left ? 'translate(-53px, -50%)' :
-                      (hoveredHandle || selectedArrow) === Position.Bottom ? 'translate(-50%, 53px)' :
-                      'translate(-50%, -53px)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Circle */}
-          <div 
-            className="w-8 h-8 border-2 border-gray-300 rounded-full hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center"
-            onClick={() => handleShapeClick('circle')}
-          />
-          {/* Square */}
-          <div 
-            className="w-8 h-8 border-2 border-gray-300 hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center"
-            onClick={() => handleShapeClick('square')}
-          />
-          {/* Triangle */}
-          <div 
+  <div 
+    className={`absolute bg-white shadow-md rounded-lg p-3 z-50 w-[50px] ${
+      (hoveredHandle || selectedArrow) === Position.Top || (hoveredHandle || selectedArrow) === Position.Bottom 
+        ? 'grid grid-flow-col gap-3' // horizontal
+        : 'grid grid-cols-1 gap-3'   // vertical
+    }`}
+    style={{
+      left: (hoveredHandle || selectedArrow) === Position.Right ? '100%' : 
+            (hoveredHandle || selectedArrow) === Position.Left ? 'auto' : '50%',
+      right: (hoveredHandle || selectedArrow) === Position.Left ? '100%' : 'auto',
+      top: (hoveredHandle || selectedArrow) === Position.Bottom ? '100%' : 
+            (hoveredHandle || selectedArrow) === Position.Top ? 'auto' : '50%',
+      bottom: (hoveredHandle || selectedArrow) === Position.Top ? '100%' : 'auto',
+      transform: (hoveredHandle || selectedArrow) === Position.Right ? 'translate(53px, -50%)' :
+                (hoveredHandle || selectedArrow) === Position.Left ? 'translate(-53px, -50%)' :
+                (hoveredHandle || selectedArrow) === Position.Bottom ? 'translate(-50%, 53px)' :
+                'translate(-50%, -53px)'
+    }}
+    onClick={(e) => e.stopPropagation()}
+  >
+    {/* Circle */}
+    <div 
+      className="w-8 h-8 border-2 border-gray-300 rounded-full hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center"
+      onClick={() => handleShapeClick('circle')}
+    />
+    {/* Square */}
+    <div 
+      className="w-8 h-8 border-2 border-gray-300 hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center"
+      onClick={() => handleShapeClick('square')}
+    />
+    {/* Triangle */}
+    <div 
   className="w-8 h-8 hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center"
   onClick={() => handleShapeClick('triangle')}
 >
@@ -465,8 +469,9 @@ const IconNode = ({
   </svg>
 </div>
 
-        </div>
-      )}
+  </div>
+)}
+
     </div>
   );
 };
@@ -482,11 +487,12 @@ const nodeTypes: NodeTypes = {
 
 // Define edgeTypes outside the component to prevent recreation on each render
 const edgeTypes = {
- 'editable-edge': EditableEdge,
+  'editable-edge': EditableEdge,
   'smoothstep': EditableEdge,
   'catmull': EditableEdge,
   'linear': EditableEdge,
-  'bezier': EditableEdge
+  'bezier': EditableEdge,
+  'default': EditableEdge
 };
 
 

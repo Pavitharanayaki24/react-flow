@@ -57,7 +57,7 @@ export function EditableEdgeComponent({
   markerEnd,
   markerStart,
   style,
-  data = { points: [] },
+  data = { points: [], algorithm: Algorithm.Default },
   __timestamp,
   ...delegated
 }: EdgeProps<EditableEdge>) {
@@ -65,7 +65,7 @@ export function EditableEdgeComponent({
   const targetOrigin = useMemo(() => ({ x: targetX, y: targetY } as XYPosition), [targetX, targetY]);
 
   // Extract algorithm and any timestamps from data
-  const algorithm = data.algorithm || DEFAULT_ALGORITHM;
+  const algorithm = data.algorithm || Algorithm.Default;
   const timestamp = data._ts || __timestamp;
   const color = COLORS[algorithm];
 
