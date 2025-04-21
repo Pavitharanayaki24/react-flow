@@ -177,12 +177,12 @@ const IconNode = ({
   selected,
   type
 }: {
-  data: { iconSrc: string; title: string; hideLabel?: boolean };
+  data: { iconSrc: string; title: string; hideLabel?: boolean; onShapeSelect?: (shape: string, handle: Position) => void };
   selected: boolean;
   type: string;
 }) => {
-  const isBasicShape = ['square', 'triangle', 'circle', 'diamond'].includes(type);
-
+  const [hoveredHandle, setHoveredHandle] = useState<string | null>(null);
+  const [showShapes, setShowShapes] = useState(false);
   const getNodeStyle = () => {
     const baseStyle = {
       width: '100%',
@@ -209,16 +209,36 @@ const IconNode = ({
         };
     }
   };
+  const handleMouseEnter = (position: Position) => {
+    setHoveredHandle(position);
+    setShowShapes(true);
+  };
+  const handleMouseLeave = () => {
+    setHoveredHandle(null);
+    setShowShapes(false);
+  };
+  const handleShapeClick = (selectedShape: string) => {
+    if (data.onShapeSelect && hoveredHandle) {
+      const handlePosition = hoveredHandle as Position;
+      data.onShapeSelect(selectedShape, handlePosition);
+      setShowShapes(false);
+    }
+  };
 
   return (
     <div className="w-full h-full flex items-center justify-center group relative">
       <NodeResizer
-        minWidth={40}
-        minHeight={40}
-        isVisible={selected}
-        lineClassName="!border-gray-400"
-        handleClassName="!w-2 !h-2 !bg-gray-400"
-      />
+            color="#3b82f6"
+            isVisible={selected}
+            minWidth={50}
+            minHeight={50}
+            handleStyle={{
+              width: 8,
+              height: 8,
+              backgroundColor: '#fff',
+              border: '2px solid #3b82f6',
+            }}
+          />
       <Handle
         type="target"
         position={Position.Top}
@@ -252,6 +272,102 @@ const IconNode = ({
         </div>
       ) : (
         <div style={getNodeStyle()} />
+      )}
+
+      {/* Connection Points */}
+      <div className="absolute top-1/2 left-0 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-400 bg-white opacity-0 group-hover:opacity-40" />
+      <div className="absolute top-1/2 right-0 w-2 h-2 translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-400 bg-white opacity-0 group-hover:opacity-40" />
+      <div className="absolute top-0 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-blue-400 bg-white opacity-0 group-hover:opacity-40" />
+      <div className="absolute bottom-0 left-1/2 w-2 h-2 -translate-x-1/2 translate-y-1/2 rounded-full border border-dashed border-blue-400 bg-white opacity-0 group-hover:opacity-40" />
+
+      {/* Directional Arrows */}
+      {/* Top Arrow */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[60px] opacity-0 group-hover:opacity-40 hover:opacity-100"
+           onMouseEnter={() => handleMouseEnter(Position.Top)}
+           onMouseLeave={handleMouseLeave}>
+        <div className="w-[40px] h-[40px] flex flex-col items-center transition-all duration-200">
+          <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[10px] border-b-gray-200 hover:border-b-blue-500 transition-all duration-200 hover:border-l-[10px] hover:border-r-[10px] hover:border-b-[12px]" />
+          <div className="w-[3px] h-[30px] bg-gray-200 hover:bg-blue-500 hover:w-[4px] transition-all duration-200 -mt-[1px]" />
+        </div>
+      </div>
+
+      {/* Right Arrow */}
+      <div className="absolute top-1/2 right-0 translate-x-[60px] -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:opacity-100"
+           onMouseEnter={() => handleMouseEnter(Position.Right)}
+           onMouseLeave={handleMouseLeave}>
+        <div className="w-[40px] h-[40px] flex items-center transition-all duration-200">
+          <div className="w-[30px] h-[3px] bg-gray-200 hover:bg-blue-500 hover:h-[4px] transition-all duration-200" />
+          <div className="w-0 h-0 border-l-[10px] border-l-gray-200 border-y-[8px] border-y-transparent hover:border-l-blue-500 hover:border-l-[12px] hover:border-y-[10px] transition-all duration-200 -ml-[1px]" />
+        </div>
+      </div>
+
+      {/* Bottom Arrow */}
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[60px] opacity-0 group-hover:opacity-40 hover:opacity-100"
+           onMouseEnter={() => handleMouseEnter(Position.Bottom)}
+           onMouseLeave={handleMouseLeave}>
+        <div className="w-[40px] h-[40px] flex flex-col items-center transition-all duration-200">
+          <div className="w-[3px] h-[30px] bg-gray-200 hover:bg-blue-500 hover:w-[4px] transition-all duration-200" />
+          <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-gray-200 hover:border-t-blue-500 hover:border-l-[10px] hover:border-r-[10px] hover:border-t-[12px] transition-all duration-200 -mt-[1px]" />
+        </div>
+      </div>
+
+      {/* Left Arrow */}
+      <div className="absolute top-1/2 left-0 -translate-x-[60px] -translate-y-1/2 opacity-0 group-hover:opacity-40 hover:opacity-100"
+           onMouseEnter={() => handleMouseEnter(Position.Left)}
+           onMouseLeave={handleMouseLeave}>
+        <div className="w-[40px] h-[40px] flex items-center justify-end transition-all duration-200">
+          <div className="w-0 h-0 border-r-[10px] border-r-gray-200 border-y-[8px] border-y-transparent hover:border-r-blue-500 hover:border-r-[12px] hover:border-y-[10px] transition-all duration-200 -mr-[1px]" />
+          <div className="w-[30px] h-[3px] bg-gray-200 hover:bg-blue-500 hover:h-[4px] transition-all duration-200" />
+        </div>
+      </div>
+
+      {/* Shape Selection Menu */}
+      {showShapes && hoveredHandle && (
+        <div 
+          className="absolute bg-white shadow-lg rounded p-2 z-50 flex gap-2"
+          style={{
+            left: hoveredHandle === Position.Right ? '100%' : 
+                  hoveredHandle === Position.Left ? 'auto' : '50%',
+            right: hoveredHandle === Position.Left ? '100%' : 'auto',
+            top: hoveredHandle === Position.Bottom ? '100%' : 
+                 hoveredHandle === Position.Top ? 'auto' : '50%',
+            bottom: hoveredHandle === Position.Top ? '100%' : 'auto',
+            transform: hoveredHandle === Position.Right ? 'translate(70px, -50%)' :
+                      hoveredHandle === Position.Left ? 'translate(-70px, -50%)' :
+                      hoveredHandle === Position.Bottom ? 'translate(-50%, 70px)' :
+                      'translate(-50%, -70px)'
+          }}
+        >
+          <div 
+            className="w-8 h-8 border-2 border-gray-300 rounded-full hover:border-blue-500 cursor-pointer"
+            onClick={() => handleShapeClick('circle')}
+          />
+          <div 
+            className="w-8 h-8 border-2 border-gray-300 hover:border-blue-500 cursor-pointer"
+            onClick={() => handleShapeClick('square')}
+          />
+          <div 
+            className="w-8 h-8 border-2 border-gray-300 hover:border-blue-500 cursor-pointer relative"
+            onClick={() => handleShapeClick('triangle')}
+          >
+            <svg 
+              style={{
+                width: '100%',
+                height: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0
+              }}
+            >
+              <path
+                d={`M ${4 + 12} ${4 + 6} L ${4 + 4} ${4 + 20} L ${4 + 20} ${4 + 20} Z`}
+                fill="none"
+                stroke="#1a1a1a"
+                strokeWidth="2"
+              />
+            </svg>
+          </div>
+        </div>
       )}
     </div>
   );
