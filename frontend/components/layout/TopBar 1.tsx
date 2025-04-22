@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { FaUndo, FaRedo, FaCut, FaCopy, FaPaste, FaBolt, FaEye,  FaProjectDiagram } from "react-icons/fa";
+import { FaUndo, FaRedo, FaCut, FaCopy, FaPaste, FaBolt, FaEye, FaProjectDiagram, FaSave, FaFolderOpen } from "react-icons/fa";
 
 type TopBarProps = {
   title: string;
@@ -12,9 +12,11 @@ type TopBarProps = {
   onPreview: () => void;
   onEChange: () => void;
   onEdgeTypeSelect: () => void;
+  onSave: () => void;
+  onLoad: () => void;
 };
 
-const TopBar = ({ title, setTitle, undo, redo, cut, copy, paste, onPreview, onEChange, onEdgeTypeSelect }: TopBarProps) => {
+const TopBar = ({ title, setTitle, undo, redo, cut, copy, paste, onPreview, onEChange, onEdgeTypeSelect, onSave, onLoad }: TopBarProps) => {
   useEffect(() => {
     // Remove fdprocessedid attributes after mount
     const removeFdProcessedId = () => {
@@ -39,6 +41,9 @@ const TopBar = ({ title, setTitle, undo, redo, cut, copy, paste, onPreview, onEC
       <button onClick={cut} className="p-1 hover:bg-gray-100 rounded" title="Cut" suppressHydrationWarning><FaCut size={14} /></button>
       <button onClick={copy} className="p-1 hover:bg-gray-100 rounded" title="Copy" suppressHydrationWarning><FaCopy size={14} /></button>
       <button onClick={paste} className="p-1 hover:bg-gray-100 rounded" title="Paste" suppressHydrationWarning><FaPaste size={14} /></button>
+      <div className="w-px h-6 bg-gray-300 mx-2" />
+      <button onClick={onSave} className="p-1 hover:bg-gray-100 rounded" title="Save" suppressHydrationWarning><FaSave size={14} /></button>
+      <button onClick={onLoad} className="p-1 hover:bg-gray-100 rounded" title="Load" suppressHydrationWarning><FaFolderOpen size={14} /></button>
       <div className="w-px h-6 bg-gray-300 mx-2" />
       <button onClick={onPreview} className="p-1 hover:bg-gray-100 rounded" title="Preview" suppressHydrationWarning><FaEye size={14} /></button>
       <button onClick={onEChange} className="p-1 hover:bg-gray-100 rounded" title="Edge Options" suppressHydrationWarning><FaBolt size={14} /></button>

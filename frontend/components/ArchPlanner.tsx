@@ -44,6 +44,8 @@ import type {
 } from "reactflow";
 import { v4 as uuidv4 } from "uuid";
 import PreviewModal from './PreviewModal';
+import { saveGraph, loadGraph, ensureGraphReady, autoSaveGraph, loadSavedGraph } from "./graphStorage";
+import MessageBox from './MessageBox';
 
 type HistoryItem = {
   nodes: Node[];
@@ -497,9 +499,25 @@ const IconNode = ({
                 ? 'w-8 h-8' // larger for top/bottom
                 : 'w-8 h-8'   // smaller for right/left
             } border-2 ${isMenuHovered ? 'border-black' : 'border-gray-300'} hover:border-blue-500 cursor-pointer bg-white flex items-center justify-center hover:bg-blue-50`}
-            style={{ clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)' }}
             onClick={() => handleShapeClick('triangle')}
-          />
+          >
+            <svg 
+              width="80%" 
+              height="80%" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                d="M12 4L20 19H4L12 4Z" 
+                fill="white" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
       )}
 
@@ -808,6 +826,34 @@ const ArchPlanner = () => {
     setShowEdgeTypeOptions(!showEdgeTypeOptions);
   };
 
+  const handleSave = async () => {
+    try {
+      await ensureGraphReady();
+      saveGraph(nodes, edges);
+    } catch (error) {
+      console.error("Error saving graph:", error);
+    }
+  };
+
+  const handleLoad = async () => {
+    try {
+      await ensureGraphReady();
+      loadGraph(setNodes, setEdges);
+    } catch (error) {
+      console.error("Error loading graph:", error);
+    }
+  };
+
+  // Auto-save when nodes or edges change
+  useEffect(() => {
+    autoSaveGraph(nodes, edges);
+  }, [nodes, edges]);
+
+  // Load saved graph on initial mount
+  useEffect(() => {
+    loadSavedGraph(setNodes, setEdges);
+  }, []);
+
   return (
     <ReactFlowProvider>
       <div style={{ height: "100vh", width: "100vw", position: "relative" }}>
@@ -856,6 +902,8 @@ const ArchPlanner = () => {
             return null;
           }}
           onEdgeTypeSelect={handleEdgeTypeSelect}
+          onSave={handleSave}
+          onLoad={handleLoad}
         />
         {showEdgeTypeOptions && (
           <div className="absolute top-14 left-[420px] bg-white border border-gray-200 p-4 rounded-lg shadow-lg z-20">
@@ -974,6 +1022,7 @@ const ArchPlanner = () => {
           edges={edges}
           onUpdateFlow={handleFlowUpdate}
         />
+        <MessageBox />
       </div>
     </ReactFlowProvider>
   );
