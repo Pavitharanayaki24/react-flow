@@ -1,8 +1,6 @@
 import type { ControlPointData } from '../edges/ControlPoint';
 import { Position, type XYPosition } from 'reactflow';
-
 import { isControlPoint } from '../utils1';
-import { getControlWithCurvature } from './bezier';
 
 export function getCatmullRomPath(
   points: XYPosition[],
@@ -11,33 +9,26 @@ export function getCatmullRomPath(
 ) {
   if (points.length < 2) return '';
 
-  let path = `M ${points[0].x} ${points[0].y}`;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p1 = points[i];
-    const p2 = points[i + 1];
-
-    const p0 =
-      points[i - 1] ??
-      (bezier ? calculateBezierP0(p1, p2, sides.fromSide) : p1);
-
-    const p3 =
-      points[i + 2] ?? (bezier ? calculateBezierP3(p1, p2, sides.toSide) : p2);
-
-    const b1 = {
-      x: (-p0.x + 6 * p1.x + p2.x) / 6,
-      y: (-p0.y + 6 * p1.y + p2.y) / 6,
-    };
-
-    const b2 = {
-      x: (p1.x + 6 * p2.x - p3.x) / 6,
-      y: (p1.y + 6 * p2.y - p3.y) / 6,
-    };
-
-    path += ` C ${b1.x} ${b1.y}, ${b2.x} ${b2.y}, ${p2.x} ${p2.y}`;
+  const [start, end] = [points[0], points[points.length - 1]];
+  
+  if (bezier) {
+    // Create a smooth bezier curve
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const midX = (start.x + end.x) / 2;
+    const midY = (start.y + end.y) / 2;
+    
+    // Calculate control points for smooth curve
+    const controlPoint1X = start.x + dx * 0.25;
+    const controlPoint1Y = start.y + dy * 0.1;
+    const controlPoint2X = start.x + dx * 0.75;
+    const controlPoint2Y = end.y - dy * 0.1;
+    
+    return `M ${start.x} ${start.y} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${end.x} ${end.y}`;
   }
-
-  return path;
+  
+  // Default to right-angled path for non-bezier
+  return `M ${start.x} ${start.y} L ${start.x} ${end.y} L ${end.x} ${end.y}`;
 }
 
 export function getCatmullRomControlPoints(
@@ -45,62 +36,38 @@ export function getCatmullRomControlPoints(
   bezier = false,
   sides = { fromSide: Position.Left, toSide: Position.Right }
 ) {
-  const controlPoints: ControlPointData[] = [];
+  if (points.length < 2) return [];
 
-  // The `actualPoints.length - 2` is intentional and significant! The final point
-  // in the array is just the `XYPosition` of the target handle: we don't want to
-  // include it in the control points array, but we still need to know it's there
-  // to calculate the final control point.
-  for (let i = 0; i < points.length - 1; i++) {
-    const p1 = points[i];
-    const p2 = points[i + 1];
+  const [start, end] = [points[0], points[points.length - 1]];
 
-    const p0 =
-      points[i - 1] ??
-      (bezier ? calculateBezierP0(p1, p2, sides.fromSide) : p1);
-
-    const p3 =
-      points[i + 2] ?? (bezier ? calculateBezierP3(p1, p2, sides.toSide) : p2);
-
-    // The first and last points are the source and target handles, and we don't
-    // want to include them as control points.
-    if (isControlPoint(p1)) {
-      controlPoints.push(p1);
-    }
-
-    controlPoints.push({
-      id: '',
-      active: false,
-      x: q(p0.x, p1.x, p2.x, p3.x),
-      y: q(p0.y, p1.y, p2.y, p3.y),
-    });
+  if (bezier) {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    
+    // Add two control points for bezier curve
+    return [
+      {
+        id: 'control1',
+        active: false,
+        x: start.x + dx * 0.25,
+        y: start.y + dy * 0.1
+      },
+      {
+        id: 'control2',
+        active: false,
+        x: start.x + dx * 0.75,
+        y: end.y - dy * 0.1
+      }
+    ];
   }
 
-  return controlPoints;
-}
-
-// UTILS -----------------------------------------------------------------------
-
-function calculateBezierP0(p1: XYPosition, p2: XYPosition, side: Position) {
-  const c1 = getControlWithCurvature(side, p1.x, p1.y, p2.x, p2.y, 0.25);
-  return { x: p2.x + 6 * (p1.x - c1[0]), y: p2.y + 6 * (p1.y - c1[1]) };
-}
-
-function calculateBezierP3(p1: XYPosition, p2: XYPosition, side: Position) {
-  const c2 = getControlWithCurvature(side, p2.x, p2.y, p1.x, p1.y, 0.25);
-  return { x: p1.x + 6 * (p2.x - c2[0]), y: p1.y + 6 * (p2.y - c2[1]) };
-}
-
-function q(p0: number, p1: number, p2: number, p3: number, t = 0.5) {
-  const alpha = 0.5;
-  const t2 = t ** 2;
-  const t3 = t ** 3;
-
-  return (
-    alpha *
-    (2 * p1 +
-      (-p0 + p2) * t +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-      (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
-  );
+  // Default to single control point for right angle
+  return [
+    {
+      id: '',
+      active: false,
+      x: start.x,
+      y: end.y
+    }
+  ];
 }

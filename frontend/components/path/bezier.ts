@@ -1,15 +1,11 @@
 import { Position } from 'reactflow';
 
-// This is directly lifted from the library - it is used to calculate
-// the control points for the bezier curve, which can be converted to
-// catmull-rom control points and used to create an editable bezier curve
-
 function calculateControlOffset(distance: number, curvature: number): number {
   if (distance >= 0) {
-    return 0.5 * distance;
+    return distance * curvature;  // <-- More responsive to curvature
   }
 
-  return curvature * 25 * Math.sqrt(-distance);
+  return curvature * 50 * Math.sqrt(-distance); // <-- increased multiplier for more dramatic curves
 }
 
 export function getControlWithCurvature(
@@ -29,5 +25,7 @@ export function getControlWithCurvature(
       return [x1, y1 - calculateControlOffset(y1 - y2, c)];
     case Position.Bottom:
       return [x1, y1 + calculateControlOffset(y2 - y1, c)];
+    default:
+      return [x1, y1]; // fallback, important to handle all cases
   }
 }

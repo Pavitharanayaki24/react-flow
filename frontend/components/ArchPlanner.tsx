@@ -264,62 +264,68 @@ const IconNode = ({
   };
   
   const handleShapeClick = (selectedShape: string) => {
-    // Find the current node to establish connection
     const nodes = getNodes();
     const currentNode = nodes.find(node => node.id === id);
     
     if (!currentNode) return;
     
-    // Calculate position for the new node based on the selected handle
-    const offset = 200; // Distance between nodes
+    const offset = 200;
+    const activeHandle = hoveredHandle ?? Position.Right;
     let newPosition = { x: currentNode.position.x, y: currentNode.position.y };
+    let sourceHandle = '';
+    let targetHandle = '';
     
-    switch (hoveredHandle) {
+    // Determine position and handles based on the active handle
+    switch (activeHandle) {
       case Position.Top:
         newPosition.y -= offset;
+        sourceHandle = 'top';
+        targetHandle = 'bottom';
         break;
       case Position.Right:
         newPosition.x += offset;
+        sourceHandle = 'right';
+        targetHandle = 'left';
         break;
       case Position.Bottom:
         newPosition.y += offset;
+        sourceHandle = 'bottom';
+        targetHandle = 'top';
         break;
       case Position.Left:
         newPosition.x -= offset;
+        sourceHandle = 'left';
+        targetHandle = 'right';
         break;
     }
     
-    // Create new node with selected shape
+    // Create new node
     const newNode = {
       id: `node-${uuidv4()}`,
       type: selectedShape,
       position: newPosition,
       data: {
-        iconSrc: "", // Empty for now
-        title: selectedShape, // Use shape name as title
+        iconSrc: "",
+        title: selectedShape,
       },
       style: { width: 125, height: 125 },
     };
     
-    // Create edge to connect the nodes
+    // Create edge with proper handles
     const newEdge = {
       id: `edge-${uuidv4()}`,
       source: currentNode.id,
       target: newNode.id,
       type: 'editable-edge',
-      sourceHandle: hoveredHandle === Position.Top ? 'top' : 
-                   hoveredHandle === Position.Right ? 'right' : 
-                   hoveredHandle === Position.Bottom ? 'bottom' : 'left',
-      targetHandle: hoveredHandle === Position.Top ? 'bottom' : 
-                   hoveredHandle === Position.Right ? 'left' : 
-                   hoveredHandle === Position.Bottom ? 'top' : 'right',
+      sourceHandle: sourceHandle,
+      targetHandle: targetHandle,
       data: {
         algorithm: DEFAULT_ALGORITHM,
         points: []
       }
     };
     
-    // Add the new node and edge
+    // Add both node and edge
     setNodes((prevNodes: Node[]) => [...prevNodes, newNode]);
     setEdges((prevEdges: Edge[]) => [...prevEdges, newEdge]);
     
@@ -327,6 +333,7 @@ const IconNode = ({
     setHoveredHandle(null);
     setShowShapes(false);
   };
+  
 
   return (
     <div className="w-full h-full flex items-center justify-center group relative">
