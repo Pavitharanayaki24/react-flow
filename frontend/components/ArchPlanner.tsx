@@ -46,6 +46,7 @@ import { v4 as uuidv4 } from "uuid";
 import PreviewModal from './PreviewModal';
 import { saveGraph, loadGraph, ensureGraphReady, autoSaveGraph, loadSavedGraph } from "./graphStorage";
 import MessageBox from './MessageBox';
+import EdgeStylePanel from './panels/EdgeStylePanel';
 
 type HistoryItem = {
   nodes: Node[];
@@ -565,6 +566,7 @@ const ArchPlanner = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [showEdgeTypeOptions, setShowEdgeTypeOptions] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
 
   // Reset preview state on page load and when component unmounts
   useEffect(() => {
@@ -675,7 +677,7 @@ const ArchPlanner = () => {
         const newEdge = {
           ...params,
           id: `edge-${uuidv4()}`,
-          type: 'smoothstep',
+          type: 'editable-edge',
           data: {
             algorithm: DEFAULT_ALGORITHM,
             points: []
@@ -746,6 +748,9 @@ const ArchPlanner = () => {
   );
 
   const handleCanvasClick = (e: React.MouseEvent) => {
+    if (selectedEdge) {
+      setSelectedEdge(null);
+    }
     if (!clickedIcon) return;
     const bounds = (e.target as HTMLDivElement).getBoundingClientRect();
     const position = {
@@ -860,6 +865,34 @@ const ArchPlanner = () => {
   useEffect(() => {
     loadSavedGraph(setNodes, setEdges);
   }, []);
+
+  const handleEdgeClick = (event: React.MouseEvent, edge: Edge) => {
+    event.stopPropagation(); // Prevent canvas click from triggering
+    setSelectedEdge(edge);
+  };
+
+  const handleEdgeStyleChange = (edgeId: string, algorithm: string) => {
+    setEdges((eds) =>
+      eds.map((ed) => {
+        if (ed.id === edgeId) {
+          return {
+            ...ed,
+            type: 'smoothstep',
+            data: {
+              ...ed.data,
+              algorithm,
+              points: ed.data?.points || []
+            },
+          };
+        }
+        return ed;
+      })
+    );
+  };
+
+  const handleCloseEdgePanel = () => {
+    setSelectedEdge(null);
+  };
 
   return (
     <ReactFlowProvider>
@@ -1002,6 +1035,8 @@ const ArchPlanner = () => {
             edgeTypes={edgeTypes}
             connectionMode={ConnectionMode.Loose}
             connectionLineComponent={ConnectionLine}
+            onEdgeClick={handleEdgeClick}
+            onClick={handleCanvasClick}
           >
             <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
             <MiniMap style={{ position: "absolute", bottom: "60px" }} />
@@ -1009,6 +1044,13 @@ const ArchPlanner = () => {
               horizontal={helperLineHorizontal}
               vertical={helperLineVertical}
             />
+            {selectedEdge && (
+              <EdgeStylePanel
+                selectedEdge={selectedEdge}
+                onEdgeStyleChange={handleEdgeStyleChange}
+                onClose={handleCloseEdgePanel}
+              />
+            )}
           </ReactFlow>
         </div>
         <PreviewModal
