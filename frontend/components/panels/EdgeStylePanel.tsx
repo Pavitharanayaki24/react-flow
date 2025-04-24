@@ -1,5 +1,4 @@
-import React from 'react';
-import { Position } from '@xyflow/react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_ALGORITHM } from '../edges/constants';
 
 interface EdgeStylePanelProps {
@@ -13,70 +12,201 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
   onEdgeStyleChange,
   onClose,
 }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [currentAlgorithm, setCurrentAlgorithm] = useState('smoothstep');
+  const [hoveredAlgorithm, setHoveredAlgorithm] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Update currentAlgorithm when selectedEdge changes
+  useEffect(() => {
+    if (selectedEdge) {
+      const algorithm = selectedEdge.data?.algorithm || 'smoothstep';
+      setCurrentAlgorithm(algorithm);
+    }
+  }, [selectedEdge]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
+        setIsDropdownVisible(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Initialize edge type if needed
+  useEffect(() => {
+    if (selectedEdge && (!selectedEdge.data?.algorithm || selectedEdge.data.algorithm === DEFAULT_ALGORITHM)) {
+      onEdgeStyleChange(selectedEdge.id, 'smoothstep');
+      setCurrentAlgorithm('smoothstep');
+    }
+  }, [selectedEdge]);
+
   if (!selectedEdge) return null;
 
-  const currentAlgorithm = selectedEdge.data?.algorithm || DEFAULT_ALGORITHM;
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+    if (!isExpanded) {
+      setIsDropdownVisible(false);
+    }
+  };
+
+  const handlePathSelect = (algorithm: string) => {
+    onEdgeStyleChange(selectedEdge.id, algorithm);
+    setCurrentAlgorithm(algorithm);
+    setIsDropdownVisible(false);
+  };
+
+  const handleHoverStart = (algorithm: string) => {
+    setHoveredAlgorithm(algorithm);
+    // Temporarily change the edge style
+    onEdgeStyleChange(selectedEdge.id, algorithm);
+  };
+
+  const handleHoverEnd = () => {
+    setHoveredAlgorithm(null);
+    // Reset to the current algorithm
+    onEdgeStyleChange(selectedEdge.id, currentAlgorithm);
+  };
+
+  // Function to get display name for the algorithm
+  const getDisplayName = (algorithm: string) => {
+    if (algorithm === 'smoothstep' || !algorithm) return 'smoothstep';
+    if (algorithm === 'bezier-catmull-rom') return 'Bezier';
+    if (algorithm === 'catmull-rom') return 'Catmull-Rom';
+    return 'Linear';
+  };
 
   return (
-    <div className="fixed right-4 top-20 bg-white rounded-lg shadow-lg p-4 w-64 z-50">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Edge Style</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700"
+    <div style={{ position: 'absolute', top: 60, right: 20, width: '250px', zIndex: 1000 }}>
+      {/* Toggle Header */}
+      <div
+        onClick={toggleExpand}
+        style={{
+          width: '250px',
+          height: '40px',
+          background: '#eee',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          paddingLeft: '10px',
+          cursor: 'pointer',
+          borderRadius: '8px 8px 0 0',
+          boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+        }}
+      >
+        <span style={{ 
+          fontSize: '16px', 
+          transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', 
+          transition: 'transform 0.3s ease' 
+        }}>
+          ▼
+        </span>
+        <span style={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: '16px',
+          color: '#333',
+        }}>
+          ⋮
+        </span>
+      </div>
+
+      {/* Main Panel */}
+      {isExpanded && (
+        <div
+          ref={panelRef}
+          style={{
+            width: '250px',
+            background: '#fff',
+            borderRadius: '0 0 8px 8px',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+          }}
         >
-          ✕
-        </button>
-      </div>
-      
-      <div className="space-y-3">
-        <label className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="edgeStyle"
-              value="linear"
-              checked={currentAlgorithm === 'linear'}
-              onChange={(e) => onEdgeStyleChange(selectedEdge.id, e.target.value)}
-              className="w-4 h-4 text-blue-500"
-            />
-            <span>Linear</span>
-          </div>
-          <div className="w-16 h-1.5 bg-blue-500 rounded-full" />
-        </label>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '15px',
+              position: 'relative',
+            }}
+          >
+            <label style={{ fontSize: '14px' }}>Edge : </label>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDropdownVisible(!isDropdownVisible);
+              }}
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                minWidth: '100px',
+                textAlign: 'center',
+              }}
+            >
+              {getDisplayName(currentAlgorithm)}
+            </div>
 
-        <label className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="edgeStyle"
-              value="catmull-rom"
-              checked={currentAlgorithm === 'catmull-rom'}
-              onChange={(e) => onEdgeStyleChange(selectedEdge.id, e.target.value)}
-              className="w-4 h-4 text-pink-500"
-            />
-            <span>Catmull-Rom</span>
+            {/* Dropdown Menu */}
+            {isDropdownVisible && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: '15px',
+                  background: 'white',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+                  borderRadius: '4px',
+                  width: '150px',
+                  zIndex: 1001,
+                }}
+              >
+                {[
+                  { value: 'linear', label: 'Linear' },
+                  { value: 'catmull-rom', label: 'Catmull-Rom' },
+                  { value: 'bezier-catmull-rom', label: 'Bezier' }
+                ].map(({ value, label }, index, array) => (
+                  <div
+                    key={value}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePathSelect(value);
+                    }}
+                    onMouseEnter={() => handleHoverStart(value)}
+                    onMouseLeave={handleHoverEnd}
+                    style={{
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      backgroundColor: hoveredAlgorithm === value ? '#f0f0f0' : 'white',
+                      borderRadius: index === 0 ? '4px 4px 0 0' : 
+                                 index === array.length - 1 ? '0 0 4px 4px' : 
+                                 'none',
+                      transition: 'background-color 0.2s ease',
+                    }}
+                  >
+                    {label}
+                    {currentAlgorithm === value && (
+                      <span style={{ color: '#4299e1' }}></span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="w-16 h-1.5 bg-pink-500 rounded-full" />
-        </label>
-
-        <label className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-          <div className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="edgeStyle"
-              value="bezier-catmull-rom"
-              checked={currentAlgorithm === 'bezier-catmull-rom'}
-              onChange={(e) => onEdgeStyleChange(selectedEdge.id, e.target.value)}
-              className="w-4 h-4 text-green-500"
-            />
-            <span>Bezier-Catmull-Rom</span>
-          </div>
-          <div className="w-16 h-1.5 bg-green-500 rounded-full" />
-        </label>
-      </div>
-
-     
+        </div>
+      )}
     </div>
   );
 };

@@ -947,68 +947,68 @@ const ArchPlanner = () => {
         />
         {showEdgeTypeOptions && (
           <div className="absolute top-14 left-[420px] bg-white border border-gray-200 p-4 rounded-lg shadow-lg z-20">
-            <div className="flex flex-col space-y-2">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="edgeType"
-                  value="bezier-catmull-rom"
-                  onChange={() => {
-                    setEdges(edges.map(edge => ({
-                      ...edge,
-                      type: 'smoothstep',
-                      data: {
-                        ...edge.data,
-                        algorithm: 'bezier-catmull-rom',
-                        points: []
-                      }
-                    })));
-                    setShowEdgeTypeOptions(false);
-                  }}
-                />
+            <div className="flex flex-col space-y-4">
+              <button
+                className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'smoothstep',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'bezier-catmull-rom',
+                      points: []
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" className="text-emerald-500">
+                  <path transform="translate(3,4)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 2 26 Q 2 14 14 14 Q 28 14 28 4 M 26 0 L 30 0 L 30 4 L 26 4 Z" stroke="currentColor" fill="none"/>
+                </svg>
                 <span className="text-sm text-emerald-500">Bezier-Catmull-Rom</span>
-              </label>
+              </button>
 
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="edgeType"
-                  value="catmull-rom"
-                  onChange={() => {
-                    setEdges(edges.map(edge => ({
-                      ...edge,
-                      type: 'smoothstep',
-                      data: {
-                        ...edge.data,
-                        algorithm: 'catmull-rom',
-                        points: edge.data?.points || []
-                      }
-                    })));
-                    setShowEdgeTypeOptions(false);
-                  }}
-                />
+              <button
+                className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'smoothstep',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'catmull-rom',
+                      points: edge.data?.points || []
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" className="text-pink-500">
+                  <path transform="translate(3,3)rotate(270,0,0)scale(-1,1)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 2 26 L 2 14 L 28 14 L 28 4 M 26 0 L 30 0 L 30 4 L 26 4 Z M 14 11 L 14 5 M 14 3 L 16 5 L 12 5 Z M 14 17 L 14 23 M 14 25 L 16 23 L 12 23 Z" stroke="currentColor" fill="none"/>
+                </svg>
                 <span className="text-sm text-pink-500">Catmull-Rom</span>
-              </label>
+              </button>
 
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="edgeType"
-                  value="linear"
-                  onChange={() => {
-                    setEdges(edges.map(edge => ({
-                      ...edge,
-                      type: 'smoothstep',
-                      data: {
-                        ...edge.data,
-                        algorithm: 'linear'
-                      }
-                    })));
-                    setShowEdgeTypeOptions(false);
-                  }}
-                />
+              <button
+                className="flex items-center space-x-3 px-4 py-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  setEdges(edges.map(edge => ({
+                    ...edge,
+                    type: 'smoothstep',
+                    data: {
+                      ...edge.data,
+                      algorithm: 'linear'
+                    }
+                  })));
+                  setShowEdgeTypeOptions(false);
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 36 36" className="text-blue-500">
+                  <path transform="translate(3,4)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 4 26 L 26 4 M 26 0 L 30 0 L 30 4 L 26 4 Z" stroke="currentColor" fill="none"/>
+                </svg>
                 <span className="text-sm text-blue-500">Linear</span>
-              </label>
+              </button>
             </div>
           </div>
         )}
