@@ -10,13 +10,12 @@ export function getCatmullRomPath(
   if (points.length < 2) return '';
 
   const [start, end] = [points[0], points[points.length - 1]];
+  const gapSize = 15;
   
+  // Handle Bezier curve separately
   if (bezier) {
-    // Create a smooth bezier curve
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
     
     // Calculate control points for smooth curve
     const controlPoint1X = start.x + dx * 0.25;
@@ -27,8 +26,22 @@ export function getCatmullRomPath(
     return `M ${start.x} ${start.y} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${end.x} ${end.y}`;
   }
   
-  // Default to right-angled path for non-bezier
-  return `M ${start.x} ${start.y} L ${start.x} ${end.y} L ${end.x} ${end.y}`;
+  // Handle Catmull-Rom with orthogonal path
+  const fromHandle = start;
+  const toHandle = end;
+  
+  if (sides.fromSide === Position.Right && sides.toSide === Position.Left) {
+    // When connecting right to left
+    return `M ${fromHandle.x} ${fromHandle.y}
+            L ${fromHandle.x + gapSize} ${fromHandle.y}
+            L ${fromHandle.x + gapSize} ${fromHandle.y - gapSize}
+            L ${toHandle.x - gapSize} ${fromHandle.y - gapSize}
+            L ${toHandle.x - gapSize} ${toHandle.y}
+            L ${toHandle.x} ${toHandle.y}`;
+  }
+  
+  // Default straight line for other cases
+  return `M ${fromHandle.x} ${fromHandle.y} L ${toHandle.x} ${toHandle.y}`;
 }
 
 export function getCatmullRomControlPoints(
@@ -39,12 +52,13 @@ export function getCatmullRomControlPoints(
   if (points.length < 2) return [];
 
   const [start, end] = [points[0], points[points.length - 1]];
+  const gapSize = 15;
 
+  // Handle Bezier control points
   if (bezier) {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     
-    // Add two control points for bezier curve
     return [
       {
         id: 'control1',
@@ -61,13 +75,37 @@ export function getCatmullRomControlPoints(
     ];
   }
 
-  // Default to single control point for right angle
+  // Handle Catmull-Rom control points
+  if (sides.fromSide === Position.Right && sides.toSide === Position.Left) {
+    return [
+      {
+        id: 'start-corner',
+        active: false,
+        x: start.x + gapSize,
+        y: start.y - gapSize
+      },
+      {
+        id: 'mid-horizontal',
+        active: false,
+        x: end.x - gapSize,
+        y: start.y - gapSize
+      },
+      {
+        id: 'end-corner',
+        active: false,
+        x: end.x - gapSize,
+        y: end.y
+      }
+    ];
+  }
+
+  // Default control point for other cases
   return [
     {
-      id: '',
+      id: 'mid',
       active: false,
-      x: start.x,
-      y: end.y
+      x: (start.x + end.x) / 2,
+      y: (start.y + end.y) / 2
     }
   ];
 }

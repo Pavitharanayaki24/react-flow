@@ -190,25 +190,10 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
                 }}
               >
                 {[
-                  { 
-                    value: 'linear', 
-                    label: 'Linear', 
-                    Icon: StraightIcon,
-                    color: '#2196F3' // blue
-                  },
-                  { 
-                    value: 'catmull-rom', 
-                    label: 'Catmull-Rom', 
-                    Icon: OrthogonalIcon,
-                    color: '#E91E63' // pink
-                  },
-                  { 
-                    value: 'bezier-catmull-rom', 
-                    label: 'Bezier', 
-                    Icon: CurveIcon,
-                    color: '#4CAF50' // green
-                  }
-                ].map(({ value, label, Icon, color }, index, array) => (
+                  { value: 'linear', Icon: StraightIcon },
+                  { value: 'catmull-rom', Icon: OrthogonalIcon },
+                  { value: 'bezier-catmull-rom', Icon: CurveIcon }
+                ].map(({ value, Icon }, index, array) => (
                   <div
                     key={value}
                     onClick={(e) => {
@@ -222,20 +207,18 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
+                      justifyContent: 'center',
                       backgroundColor: hoveredAlgorithm === value ? '#f0f0f0' : 'white',
                       borderRadius: index === 0 ? '4px 4px 0 0' : 
                                  index === array.length - 1 ? '0 0 4px 4px' : 
                                  'none',
                       transition: 'background-color 0.2s ease',
-                      color: color,
+                      color: value === 'linear' ? '#2196F3' : 
+                             value === 'catmull-rom' ? '#E91E63' : 
+                             '#4CAF50'
                     }}
                   >
                     <Icon />
-                    <span>{label}</span>
-                    {currentAlgorithm === value && (
-                      <span style={{ marginLeft: 'auto' }}>✓</span>
-                    )}
                   </div>
                 ))}
               </div>
