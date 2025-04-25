@@ -1,6 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DEFAULT_ALGORITHM } from '../edges/constants';
 
+const StraightIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 36 36">
+    <path transform="translate(3,4)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 4 26 L 26 4 M 26 0 L 30 0 L 30 4 L 26 4 Z" stroke="currentColor" fill="none"/>
+  </svg>
+);
+
+const CurveIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 36 36">
+    <path transform="translate(3,4)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 2 26 Q 2 14 14 14 Q 28 14 28 4 M 26 0 L 30 0 L 30 4 L 26 4 Z" stroke="currentColor" fill="none"/>
+  </svg>
+);
+
+const OrthogonalIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="18" viewBox="0 0 36 36">
+    <path transform="translate(3,3)rotate(270,0,0)scale(-1,1)" strokeWidth="2" d="M 0 26 L 4 26 L 4 30 L 0 30 Z M 2 26 L 2 14 L 28 14 L 28 4 M 26 0 L 30 0 L 30 4 L 26 4 Z M 14 11 L 14 5 M 14 3 L 16 5 L 12 5 Z M 14 17 L 14 23 M 14 25 L 16 23 L 12 23 Z" stroke="currentColor" fill="none"/>
+  </svg>
+);
+
 interface EdgeStylePanelProps {
   selectedEdge: any;
   onEdgeStyleChange: (edgeId: string, algorithm: string) => void;
@@ -172,10 +190,25 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
                 }}
               >
                 {[
-                  { value: 'linear', label: 'Linear' },
-                  { value: 'catmull-rom', label: 'Catmull-Rom' },
-                  { value: 'bezier-catmull-rom', label: 'Bezier' }
-                ].map(({ value, label }, index, array) => (
+                  { 
+                    value: 'linear', 
+                    label: 'Linear', 
+                    Icon: StraightIcon,
+                    color: '#2196F3' // blue
+                  },
+                  { 
+                    value: 'catmull-rom', 
+                    label: 'Catmull-Rom', 
+                    Icon: OrthogonalIcon,
+                    color: '#E91E63' // pink
+                  },
+                  { 
+                    value: 'bezier-catmull-rom', 
+                    label: 'Bezier', 
+                    Icon: CurveIcon,
+                    color: '#4CAF50' // green
+                  }
+                ].map(({ value, label, Icon, color }, index, array) => (
                   <div
                     key={value}
                     onClick={(e) => {
@@ -188,17 +221,20 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
                       padding: '8px 12px',
                       cursor: 'pointer',
                       display: 'flex',
-                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '8px',
                       backgroundColor: hoveredAlgorithm === value ? '#f0f0f0' : 'white',
                       borderRadius: index === 0 ? '4px 4px 0 0' : 
                                  index === array.length - 1 ? '0 0 4px 4px' : 
                                  'none',
                       transition: 'background-color 0.2s ease',
+                      color: color,
                     }}
                   >
-                    {label}
+                    <Icon />
+                    <span>{label}</span>
                     {currentAlgorithm === value && (
-                      <span style={{ color: '#4299e1' }}></span>
+                      <span style={{ marginLeft: 'auto' }}>✓</span>
                     )}
                   </div>
                 ))}
