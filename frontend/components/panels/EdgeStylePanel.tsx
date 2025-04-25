@@ -208,11 +208,13 @@ const EdgeStylePanel: React.FC<EdgeStylePanelProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      backgroundColor: hoveredAlgorithm === value ? '#f0f0f0' : 'white',
+                      backgroundColor: currentAlgorithm === value ? '#e0e0e0' : 
+                                    hoveredAlgorithm === value ? '#f5f5f5' : 
+                                    'white',
                       borderRadius: index === 0 ? '4px 4px 0 0' : 
                                  index === array.length - 1 ? '0 0 4px 4px' : 
                                  'none',
-                      transition: 'background-color 0.2s ease',
+                      transition: 'all 0.2s ease',
                       color: value === 'linear' ? '#2196F3' : 
                              value === 'catmull-rom' ? '#E91E63' : 
                              '#4CAF50'
